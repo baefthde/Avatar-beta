@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Avatar Chat UI</title><link rel="stylesheet" href="css/style.css" /></head><body>
+  <header>
+    <h1>Avatar Chat UI</h1>
+  </header>
+  <div style="padding:8px 12px;background:#061021;">
+    <button id="open-system-btn">Systemeinstellungen</button>
+    <button id="open-avatar-btn">Avatar Einstellungen</button>
+  </div>
+  <main id="main">
+    <section id="left">
+      <div id="avatar-container" class="avatar-box"></div>
+    </section>
+    <section id="right">
+      <div id="messages" class="messages"></div>
+      <div class="input-row"><input id="chat-input" type="text" placeholder="Nachricht..." /><button id="send-btn">Senden</button></div>
+    </section>
+  </main>
+
+<!-- System settings panel -->
+<aside id="system-panel" style="position:fixed;right:12px;top:80px;width:560px;max-height:80vh;background:#071028;border-radius:8px;padding:12px;overflow:auto;display:none;box-shadow:0 6px 18px rgba(0,0,0,0.6);z-index:999;">
+  <h2>Systemeinstellungen</h2>
+  <h3>OpenWebUI</h3>
+  <label>URL: <input type="text" id="openwebui_url" placeholder="https://your-openwebui.com" style="width:100%"/></label><br/>
+  <label>API Key: <input type="password" id="openwebui_api_key" style="width:100%"/></label><br/>
+  <label>Default Model: <input type="text" id="default_model" placeholder="gpt-4o-mini" style="width:100%"/></label><br/>
+  <label><input type="checkbox" id="use_speech_input" /> Spracheingabe</label><br/>
+  <label><input type="checkbox" id="use_speech_output" /> Sprachausgabe</label><br/>
+  <hr/>
+  <h3>Text-zu-Sprache (TTS)</h3>
+  <label>TTS-Engine (API URL): <input type="text" id="tts_engine_url" placeholder="https://api.openai.com" style="width:100%"/></label><br/>
+  <label>TTS API Token: <input type="password" id="tts_api_key" style="width:100%"/></label><br/>
+  <label>TTS Stimme (voice): <input type="text" id="tts_voice" placeholder="alloy" style="width:100%"/></label><br/>
+  <label>TTS Modell: <input type="text" id="tts_model" placeholder="gpt-4o-mini-tts" style="width:100%"/></label><br/>
+  <hr/>
+  <h3>Logging</h3>
+  <label>Modus:
+    <select id="log_mode"><option value="none">Keine</option><option value="system">Systemlog</option><option value="all">Log alles</option></select>
+  </label><br/>
+  <button id="save-system-btn">Speichern</button> <button id="test-openwebui-btn">Test OpenWebUI</button> <button id="test-tts-btn">Test TTS</button>
+  <button id="view-system-log">Zeige Systemlog</button>
+  <button id="view-all-log">Zeige All-Log</button>
+</aside>
+
+<!-- Avatar settings panel -->
+<aside id="avatar-panel" style="position:fixed;right:12px;top:80px;width:560px;max-height:80vh;background:#071028;border-radius:8px;padding:12px;overflow:auto;display:none;box-shadow:0 6px 18px rgba(0,0,0,0.6);z-index:999;">
+  <h2>Avatar Einstellungen</h2>
+  <h3>Allgemein</h3>
+  <label>Avatar Name: <input type="text" id="avatar_name" placeholder="Name des Avatars" style="width:100%"/></label><br/>
+  <label>Avatar Typ:
+    <select id="avatar_type_panel"><option value="2d">2D</option><option value="3d">3D</option></select>
+  </label>
+  <label id="quality-wrapper" style="display:none">Qualität: <select id="avatar_quality"><option value="low">Low</option><option value="medium">Medium</option><option value="high" selected>High</option></select></label>
+  <hr/>
+  <h3>Avatar Erscheinung</h3>
+  <label>Hautfarbe: <input type="color" id="skin_color_panel" value="#f2d0b3" /></label><br/>
+  <label>Haarfarbe: <input type="color" id="hair_color_panel" value="#2b1b12" /></label><br/>
+  <label>Oberteil:
+    <select id="top_style_panel"><option value="tshirt">T-Shirt</option><option value="sweater">Sweater</option><option value="jacket">Jacket</option></select>
+  </label>
+  <hr/>
+  <h3>System-Prompt</h3>
+  <label>System Prompt (an die KI):<br/>
+    <textarea id="avatar_system_prompt" rows="4" style="width:100%" placeholder="Gib hier systemseitige Informationen ein..."></textarea>
+  </label>
+  <hr/>
+  <button id="save-avatar-btn">Speichern</button>
+</aside>
+
+<script src="js/main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.163.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.163.0/examples/js/loaders/OBJLoader.js"></script>
+<script src="js/avatar2d.js"></script>
+<script src="js/avatar3d.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  const sysBtn = document.getElementById('open-system-btn');
+  const avBtn = document.getElementById('open-avatar-btn');
+  const sysPanel = document.getElementById('system-panel');
+  const avPanel = document.getElementById('avatar-panel');
+
+  sysBtn && sysBtn.addEventListener('click', ()=>{ sysPanel.style.display = (sysPanel.style.display==='block')?'none':'block'; avPanel.style.display='none'; loadSystemConfig(); });
+  avBtn && avBtn.addEventListener('click', ()=>{ avPanel.style.display = (avPanel.style.display==='block')?'none':'block'; sysPanel.style.display='none'; loadAvatarSettings(); });
+
+  async function loadSystemConfig(){
+    try{
+      const res = await fetch('/api/config');
+      const cfg = await res.json();
+      document.getElementById('openwebui_url').value = cfg.openwebui_url || '';
+      document.getElementById('openwebui_api_key').value = cfg.openwebui_api_key || '';
+      document.getElementById('default_model').value = cfg.default_model || '';
+      document.getElementById('use_speech_input').checked = !!cfg.use_speech_input;
+      document.getElementById('use_speech_output').checked = !!cfg.use_speech_output;
+      document.getElementById('tts_engine_url').value = cfg.tts_engine_url || '';
+      document.getElementById('tts_api_key').value = cfg.tts_api_key || '';
+      document.getElementById('tts_voice').value = cfg.tts_voice || '';
+      document.getElementById('tts_model').value = cfg.tts_model || '';
+      document.getElementById('log_mode').value = localStorage.getItem('logMode')||'none';
+    }catch(e){
+      console.warn('Could not load config', e);
+    }
+  }
+
+  function loadAvatarSettings(){
+    const av = JSON.parse(localStorage.getItem('avatarSettings')||'{}');
+    document.getElementById('avatar_name').value = av.avatar_name || 'Ava';
+    document.getElementById('avatar_type_panel').value = av.type || '3d';
+    document.getElementById('skin_color_panel').value = av.skin_color || '#f2d0b3';
+    document.getElementById('hair_color_panel').value = av.hair_color || '#2b1b12';
+    document.getElementById('top_style_panel').value = av.top_style || 'tshirt';
+    document.getElementById('avatar_system_prompt').value = av.system_prompt || '';
+    // quality show/hide
+    const qualWrapper = document.getElementById('quality-wrapper');
+    qualWrapper.style.display = (document.getElementById('avatar_type_panel').value === '3d') ? 'inline-block' : 'none';
+  }
+
+  // Save system settings
+  document.getElementById('save-system-btn').addEventListener('click', async ()=>{
+    const cfg = {
+      openwebui_url: document.getElementById('openwebui_url').value,
+      openwebui_api_key: document.getElementById('openwebui_api_key').value,
+      default_model: document.getElementById('default_model').value,
+      use_speech_input: document.getElementById('use_speech_input').checked,
+      use_speech_output: document.getElementById('use_speech_output').checked,
+      tts_engine_url: document.getElementById('tts_engine_url').value,
+      tts_api_key: document.getElementById('tts_api_key').value,
+      tts_voice: document.getElementById('tts_voice').value,
+      tts_model: document.getElementById('tts_model').value
+    };
+    try{
+      const res = await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(cfg) });
+      if (res.ok) { alert('Systemeinstellungen gespeichert'); 
+         // reload config to ensure API keys persist in UI
+         setTimeout(async ()=>{ try { const r=await fetch('/api/config'); const c=await r.json(); document.getElementById('openwebui_api_key').value = c.openwebui_api_key || ''; document.getElementById('tts_api_key').value = c.tts_api_key || ''; } catch(e){}} , 250);
+      }
+      else { alert('Fehler beim Speichern'); }
+    }catch(e){ alert('Fehler beim Speichern: '+e); }
+  });
+
+  // Test OpenWebUI
+  document.getElementById('test-openwebui-btn').addEventListener('click', async ()=>{
+    const btn = document.getElementById('test-openwebui-btn'); btn.disabled=true;
+    try { const r = await fetch('/api/test/openwebui'); const j = await r.json(); alert('OpenWebUI Test: ' + (j.ok ? 'OK (status '+j.status+')' : ('Fehler: '+JSON.stringify(j)))); } catch(e){ alert('Fehler beim Test: '+e); }
+    btn.disabled=false;
+  });
+
+  // Test TTS
+  document.getElementById('test-tts-btn').addEventListener('click', async ()=>{
+    const btn = document.getElementById('test-tts-btn'); btn.disabled=true;
+    try {
+      const payload = {
+        url: document.getElementById('tts_engine_url').value,
+        key: document.getElementById('tts_api_key').value,
+        model: document.getElementById('tts_model').value,
+        voice: document.getElementById('tts_voice').value
+      };
+      const r = await fetch('/api/test/tts', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const j = await r.json();
+      alert('TTS Test: ' + (j.ok ? 'OK (status '+j.status+')' : ('Fehler: '+JSON.stringify(j))));
+    } catch(e){ alert('Fehler beim TTS Test: '+e); }
+    btn.disabled=false;
+  });
+
+  // View logs
+  document.getElementById('view-system-log').addEventListener('click', async ()=>{
+    const r = await fetch('/api/logs/system'); const j = await r.json(); alert('SystemLog:\n' + (j.content||''));
+  });
+  document.getElementById('view-all-log').addEventListener('click', async ()=>{
+    const r = await fetch('/api/logs/all'); const j = await r.json(); alert('AllLog:\n' + (j.content||''));
+  });
+
+  // Save avatar settings
+  document.getElementById('save-avatar-btn').addEventListener('click', ()=>{
+    const av = {
+      avatar_name: document.getElementById('avatar_name').value,
+      type: document.getElementById('avatar_type_panel').value,
+      skin_color: document.getElementById('skin_color_panel').value,
+      hair_color: document.getElementById('hair_color_panel').value,
+      top_style: document.getElementById('top_style_panel').value,
+      system_prompt: document.getElementById('avatar_system_prompt').value
+    };
+    localStorage.setItem('avatarSettings', JSON.stringify(av));
+    alert('Avatar Einstellungen gespeichert');
+  });
+
+  // Show quality when 3D selected and notify avatar3D loader
+  document.getElementById('avatar_type_panel').addEventListener('change', ()=>{
+    const qualWrapper = document.getElementById('quality-wrapper');
+    qualWrapper.style.display = (document.getElementById('avatar_type_panel').value === '3d') ? 'inline-block' : 'none';
+  });
+  document.getElementById('avatar_quality').addEventListener('change', ()=>{
+    const q = document.getElementById('avatar_quality').value;
+    if (window.avatar3D && typeof window.avatar3D.loadQuality === 'function') {
+      window.avatar3D.loadQuality(q);
+    }
+  });
+
+});
+</script>
+</body></html>

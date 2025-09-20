@@ -1,0 +1,11 @@
+{
+  "openwebui_url": "https://localhost:443",
+  "openwebui_api_key": "",
+  "use_speech_input": true,
+  "use_speech_output": true,
+  "default_model": "gpt-4o-mini",
+  "tts_engine_url": "",
+  "tts_api_key": "",
+  "tts_voice": "",
+  "tts_model": ""
+}
