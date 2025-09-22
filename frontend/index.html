@@ -1,202 +1,906 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Avatar Chat UI</title><link rel="stylesheet" href="css/style.css" /></head><body>
-  <header>
-    <h1>Avatar Chat UI</h1>
-  </header>
-  <div style="padding:8px 12px;background:#061021;">
-    <button id="open-system-btn">Systemeinstellungen</button>
-    <button id="open-avatar-btn">Avatar Einstellungen</button>
-  </div>
-  <main id="main">
-    <section id="left">
-      <div id="avatar-container" class="avatar-box"></div>
-    </section>
-    <section id="right">
-      <div id="messages" class="messages"></div>
-      <div class="input-row"><input id="chat-input" type="text" placeholder="Nachricht..." /><button id="send-btn">Senden</button></div>
-    </section>
-  </main>
+<html lang="de">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Avatar Chat UI v6 - Enhanced</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+        /* Additional styles for enhanced features */
+        .status-message {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .input-row {
+            position: relative;
+        }
+        
+        #mic-btn {
+            transition: all 0.3s ease;
+        }
+        
+        #mic-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .panel {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .diagnostics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 12px 0;
+        }
+        
+        .diagnostic-item {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        
+        .diagnostic-item.success { background: rgba(34, 197, 94, 0.2); }
+        .diagnostic-item.error { background: rgba(239, 68, 68, 0.2); }
+        .diagnostic-item.warning { background: rgba(245, 158, 11, 0.2); }
+        
+        .conversation-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .conversation-controls button {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            background: #374151;
+            border: 1px solid #4b5563;
+        }
+        
+        .conversation-controls button:hover {
+            background: #4b5563;
+        }
+        
+        .loading-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .avatar-quality-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Avatar Chat UI v6 - Enhanced</h1>
+        <div style="font-size: 0.9em; opacity: 0.7;">
+            Mit Spracheingabe, verbesserter TTS und erweiterten Avatar-Funktionen
+        </div>
+    </header>
+    
+    <div style="padding:8px 12px;background:#061021;">
+        <button id="open-system-btn">🔧 Systemeinstellungen</button>
+        <button id="open-avatar-btn">👤 Avatar Einstellungen</button>
+        <button id="clear-conversation-btn">🗑️ Unterhaltung löschen</button>
+        <button id="export-conversation-btn">📁 Exportieren</button>
+    </div>
+    
+    <main id="main">
+        <section id="left">
+            <div id="avatar-container" class="avatar-box">
+                <div class="avatar-quality-indicator" id="avatar-quality">3D High</div>
+            </div>
+        </section>
+        
+        <section id="right">
+            <div class="conversation-controls">
+                <span id="conversation-status">Unterhaltung bereit</span>
+                <span id="connection-status" style="margin-left: auto; font-size: 0.8em;">🟢 Verbunden</span>
+            </div>
+            
+            <div id="messages" class="messages"></div>
+            
+            <div class="input-row">
+                <input id="chat-input" type="text" placeholder="Nachricht eingeben oder Mikrofon nutzen..." />
+                <button id="send-btn">📨 Senden</button>
+            </div>
+        </section>
+    </main>
 
-<!-- System settings panel -->
-<aside id="system-panel" style="position:fixed;right:12px;top:80px;width:560px;max-height:80vh;background:#071028;border-radius:8px;padding:12px;overflow:auto;display:none;box-shadow:0 6px 18px rgba(0,0,0,0.6);z-index:999;">
-  <h2>Systemeinstellungen</h2>
-  <h3>OpenWebUI</h3>
-  <label>URL: <input type="text" id="openwebui_url" placeholder="https://your-openwebui.com" style="width:100%"/></label><br/>
-  <label>API Key: <input type="password" id="openwebui_api_key" style="width:100%"/></label><br/>
-  <label>Default Model: <input type="text" id="default_model" placeholder="gpt-4o-mini" style="width:100%"/></label><br/>
-  <label><input type="checkbox" id="use_speech_input" /> Spracheingabe</label><br/>
-  <label><input type="checkbox" id="use_speech_output" /> Sprachausgabe</label><br/>
-  <hr/>
-  <h3>Text-zu-Sprache (TTS)</h3>
-  <label>TTS-Engine (API URL): <input type="text" id="tts_engine_url" placeholder="https://api.openai.com" style="width:100%"/></label><br/>
-  <label>TTS API Token: <input type="password" id="tts_api_key" style="width:100%"/></label><br/>
-  <label>TTS Stimme (voice): <input type="text" id="tts_voice" placeholder="alloy" style="width:100%"/></label><br/>
-  <label>TTS Modell: <input type="text" id="tts_model" placeholder="gpt-4o-mini-tts" style="width:100%"/></label><br/>
-  <hr/>
-  <h3>Logging</h3>
-  <label>Modus:
-    <select id="log_mode"><option value="none">Keine</option><option value="system">Systemlog</option><option value="all">Log alles</option></select>
-  </label><br/>
-  <button id="save-system-btn">Speichern</button> <button id="test-openwebui-btn">Test OpenWebUI</button> <button id="test-tts-btn">Test TTS</button>
-  <button id="view-system-log">Zeige Systemlog</button>
-  <button id="view-all-log">Zeige All-Log</button>
-</aside>
+    <!-- Enhanced System settings panel -->
+    <aside id="system-panel" class="panel" style="position:fixed;right:12px;top:80px;width:600px;max-height:85vh;background:rgba(7,16,40,0.95);border-radius:12px;padding:16px;overflow:auto;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.7);z-index:999;border: 1px solid rgba(255,255,255,0.1);">
+        <h2>🔧 Systemeinstellungen</h2>
+        
+        <div class="diagnostics-grid" id="system-diagnostics" style="display:none;">
+            <div class="diagnostic-item" id="diag-url">URL: <span>-</span></div>
+            <div class="diagnostic-item" id="diag-auth">Auth: <span>-</span></div>
+            <div class="diagnostic-item" id="diag-models">Modelle: <span>-</span></div>
+            <div class="diagnostic-item" id="diag-chat">Chat: <span>-</span></div>
+        </div>
+        
+        <h3>🤖 OpenWebUI Konfiguration</h3>
+        <label>URL: <input type="text" id="openwebui_url" placeholder="https://your-openwebui.com" style="width:100%"/></label><br/>
+        <label>API Key: <input type="password" id="openwebui_api_key" style="width:100%"/></label><br/>
+        <label>Standard Modell: <input type="text" id="default_model" placeholder="gpt-4o-mini" style="width:100%"/></label><br/>
+        
+        <h3>🎤 Sprach-Einstellungen</h3>
+        <label><input type="checkbox" id="use_speech_input" /> Spracheingabe aktivieren</label><br/>
+        <label><input type="checkbox" id="use_speech_output" /> Sprachausgabe aktivieren</label><br/>
+        <label>Sprache für Erkennung: 
+            <select id="speech_recognition_lang">
+                <option value="de-DE">Deutsch</option>
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="fr-FR">Français</option>
+                <option value="es-ES">Español</option>
+            </select>
+        </label><br/>
+        
+        <hr/>
+        <h3>🔊 Text-zu-Sprache (TTS)</h3>
+        <label>TTS-Engine URL: <input type="text" id="tts_engine_url" placeholder="https://api.openai.com" style="width:100%"/></label><br/>
+        <label>TTS API Token: <input type="password" id="tts_api_key" style="width:100%"/></label><br/>
+        <label>TTS Stimme: <input type="text" id="tts_voice" placeholder="alloy, echo, fable, onyx, nova, shimmer" style="width:100%"/></label><br/>
+        <label>TTS Modell: <input type="text" id="tts_model" placeholder="tts-1" style="width:100%"/></label><br/>
+        <label>Geschwindigkeit: <input type="range" id="tts_speed" min="0.25" max="4.0" step="0.25" value="1.0"/> <span id="tts_speed_value">1.0x</span></label><br/>
+        
+        <div class="diagnostics-grid" id="tts-diagnostics" style="display:none;">
+            <div class="diagnostic-item" id="tts-diag-url">URL: <span>-</span></div>
+            <div class="diagnostic-item" id="tts-diag-auth">Auth: <span>-</span></div>
+            <div class="diagnostic-item" id="tts-diag-model">Modell: <span>-</span></div>
+            <div class="diagnostic-item" id="tts-diag-audio">Audio: <span>-</span></div>
+        </div>
+        
+        <hr/>
+        <h3>📝 Logging</h3>
+        <label>Modus:
+            <select id="log_mode">
+                <option value="none">Keine Logs</option>
+                <option value="system">System-Logs</option>
+                <option value="all">Alle Logs</option>
+            </select>
+        </label><br/>
+        
+        <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <button id="save-system-btn">💾 Speichern</button>
+            <button id="test-openwebui-btn">🧪 Test OpenWebUI</button>
+            <button id="test-tts-btn">🔊 Test TTS</button>
+            <button id="discover-tts-models-btn">🔍 TTS Modelle</button>
+            <button id="view-system-log">📋 System Log</button>
+            <button id="view-all-log">📊 All Log</button>
+        </div>
+    </aside>
 
-<!-- Avatar settings panel -->
-<aside id="avatar-panel" style="position:fixed;right:12px;top:80px;width:560px;max-height:80vh;background:#071028;border-radius:8px;padding:12px;overflow:auto;display:none;box-shadow:0 6px 18px rgba(0,0,0,0.6);z-index:999;">
-  <h2>Avatar Einstellungen</h2>
-  <h3>Allgemein</h3>
-  <label>Avatar Name: <input type="text" id="avatar_name" placeholder="Name des Avatars" style="width:100%"/></label><br/>
-  <label>Avatar Typ:
-    <select id="avatar_type_panel"><option value="2d">2D</option><option value="3d">3D</option></select>
-  </label>
-  <label id="quality-wrapper" style="display:none">Qualität: <select id="avatar_quality"><option value="low">Low</option><option value="medium">Medium</option><option value="high" selected>High</option></select></label>
-  <hr/>
-  <h3>Avatar Erscheinung</h3>
-  <label>Hautfarbe: <input type="color" id="skin_color_panel" value="#f2d0b3" /></label><br/>
-  <label>Haarfarbe: <input type="color" id="hair_color_panel" value="#2b1b12" /></label><br/>
-  <label>Oberteil:
-    <select id="top_style_panel"><option value="tshirt">T-Shirt</option><option value="sweater">Sweater</option><option value="jacket">Jacket</option></select>
-  </label>
-  <hr/>
-  <h3>System-Prompt</h3>
-  <label>System Prompt (an die KI):<br/>
-    <textarea id="avatar_system_prompt" rows="4" style="width:100%" placeholder="Gib hier systemseitige Informationen ein..."></textarea>
-  </label>
-  <hr/>
-  <button id="save-avatar-btn">Speichern</button>
-</aside>
+    <!-- Enhanced Avatar settings panel -->
+    <aside id="avatar-panel" class="panel" style="position:fixed;right:12px;top:80px;width:600px;max-height:85vh;background:rgba(7,16,40,0.95);border-radius:12px;padding:16px;overflow:auto;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.7);z-index:999;border: 1px solid rgba(255,255,255,0.1);">
+        <h2>👤 Avatar Einstellungen</h2>
+        
+        <h3>🎭 Avatar Typ</h3>
+        <label>Avatar Typ:
+            <select id="avatar_type_panel">
+                <option value="2d">2D Avatar</option>
+                <option value="3d">3D Avatar</option>
+            </select>
+        </label><br/>
+        <label id="quality-wrapper">Qualität: 
+            <select id="avatar_quality">
+                <option value="low">Low (Einfach)</option>
+                <option value="medium">Medium (Standard)</option>
+                <option value="high" selected>High (Detailliert)</option>
+            </select>
+        </label><br/>
+        
+        <h3>🎨 Avatar Erscheinung</h3>
+        <label>Avatar Name: <input type="text" id="avatar_name" placeholder="Name des Avatars" style="width:100%"/></label><br/>
+        <label>Hautfarbe: <input type="color" id="skin_color_panel" value="#f2d0b3" /></label>
+        <label>Haarfarbe: <input type="color" id="hair_color_panel" value="#2b1b12" /></label><br/>
+        <label>Oberteil-Stil:
+            <select id="top_style_panel">
+                <option value="tshirt">T-Shirt</option>
+                <option value="sweater">Pullover</option>
+                <option value="jacket">Jacke</option>
+                <option value="formal">Formal</option>
+            </select>
+        </label><br/>
+        
+        <h3>🧠 KI-Verhalten</h3>
+        <label>System Prompt (Persönlichkeit):<br/>
+            <textarea id="avatar_system_prompt" rows="4" style="width:100%" placeholder="Du bist ein freundlicher Assistent namens Ava. Du hilfst bei Fragen und unterhältst dich gerne..."></textarea>
+        </label><br/>
+        
+        <h3>🎬 Animation & Emotionen</h3>
+        <label><input type="checkbox" id="enable_emotions" checked/> Emotionen aktivieren</label><br/>
+        <label><input type="checkbox" id="enable_blinking" checked/> Augenzwinkern</label><br/>
+        <label><input type="checkbox" id="enable_breathing" checked/> Atmen-Animation</label><br/>
+        <label>Animation-Geschwindigkeit: 
+            <input type="range" id="animation_speed" min="0.5" max="2.0" step="0.1" value="1.0"/>
+            <span id="animation_speed_value">1.0x</span>
+        </label><br/>
+        
+        <div style="margin-top: 16px;">
+            <button id="save-avatar-btn">💾 Speichern</button>
+            <button id="preview-emotions-btn">😊 Emotionen testen</button>
+            <button id="reset-avatar-btn">🔄 Zurücksetzen</button>
+        </div>
+    </aside>
 
-<script src="js/main.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.163.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.163.0/examples/js/loaders/OBJLoader.js"></script>
-<script src="js/avatar2d.js"></script>
-<script src="js/avatar3d.js"></script>
+    <!-- Enhanced JavaScript loading with better error handling -->
+    <script>
+        // Global configuration and error handling
+        window.avatarChatUI = {
+            version: '6.0-enhanced',
+            debug: false,
+            errors: []
+        };
 
-<script>
-document.addEventListener('DOMContentLoaded', ()=>{
-  const sysBtn = document.getElementById('open-system-btn');
-  const avBtn = document.getElementById('open-avatar-btn');
-  const sysPanel = document.getElementById('system-panel');
-  const avPanel = document.getElementById('avatar-panel');
+        // Enhanced error handler
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            const errorInfo = {
+                message: msg,
+                source: url,
+                line: lineNo,
+                column: columnNo,
+                error: error,
+                timestamp: new Date().toISOString()
+            };
+            window.avatarChatUI.errors.push(errorInfo);
+            console.error('Avatar Chat UI Error:', errorInfo);
+            
+            // Send error to backend if available
+            if (typeof fetch !== 'undefined') {
+                fetch('/api/log/system', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: 'Frontend error',
+                        details: JSON.stringify(errorInfo)
+                    })
+                }).catch(() => {}); // Ignore logging errors
+            }
+            
+            return false;
+        };
+    </script>
 
-  sysBtn && sysBtn.addEventListener('click', ()=>{ sysPanel.style.display = (sysPanel.style.display==='block')?'none':'block'; avPanel.style.display='none'; loadSystemConfig(); });
-  avBtn && avBtn.addEventListener('click', ()=>{ avPanel.style.display = (avPanel.style.display==='block')?'none':'block'; sysPanel.style.display='none'; loadAvatarSettings(); });
+    <!-- Load Three.js and extensions -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
 
-  async function loadSystemConfig(){
-    try{
-      const res = await fetch('/api/config');
-      const cfg = await res.json();
-      document.getElementById('openwebui_url').value = cfg.openwebui_url || '';
-      document.getElementById('openwebui_api_key').value = cfg.openwebui_api_key || '';
-      document.getElementById('default_model').value = cfg.default_model || '';
-      document.getElementById('use_speech_input').checked = !!cfg.use_speech_input;
-      document.getElementById('use_speech_output').checked = !!cfg.use_speech_output;
-      document.getElementById('tts_engine_url').value = cfg.tts_engine_url || '';
-      document.getElementById('tts_api_key').value = cfg.tts_api_key || '';
-      document.getElementById('tts_voice').value = cfg.tts_voice || '';
-      document.getElementById('tts_model').value = cfg.tts_model || '';
-      document.getElementById('log_mode').value = localStorage.getItem('logMode')||'none';
-    }catch(e){
-      console.warn('Could not load config', e);
-    }
-  }
+    <!-- Load Avatar scripts -->
+    <script src="js/avatar2d.js"></script>
+    <script src="js/avatar3d.js"></script>
+    <script src="js/main.js"></script>
 
-  function loadAvatarSettings(){
-    const av = JSON.parse(localStorage.getItem('avatarSettings')||'{}');
-    document.getElementById('avatar_name').value = av.avatar_name || 'Ava';
-    document.getElementById('avatar_type_panel').value = av.type || '3d';
-    document.getElementById('skin_color_panel').value = av.skin_color || '#f2d0b3';
-    document.getElementById('hair_color_panel').value = av.hair_color || '#2b1b12';
-    document.getElementById('top_style_panel').value = av.top_style || 'tshirt';
-    document.getElementById('avatar_system_prompt').value = av.system_prompt || '';
-    // quality show/hide
-    const qualWrapper = document.getElementById('quality-wrapper');
-    qualWrapper.style.display = (document.getElementById('avatar_type_panel').value === '3d') ? 'inline-block' : 'none';
-  }
+    <!-- Enhanced UI Management Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // UI element references
+            const systemBtn = document.getElementById('open-system-btn');
+            const avatarBtn = document.getElementById('open-avatar-btn');
+            const systemPanel = document.getElementById('system-panel');
+            const avatarPanel = document.getElementById('avatar-panel');
+            const clearConvBtn = document.getElementById('clear-conversation-btn');
+            const exportConvBtn = document.getElementById('export-conversation-btn');
 
-  // Save system settings
-  document.getElementById('save-system-btn').addEventListener('click', async ()=>{
-    const cfg = {
-      openwebui_url: document.getElementById('openwebui_url').value,
-      openwebui_api_key: document.getElementById('openwebui_api_key').value,
-      default_model: document.getElementById('default_model').value,
-      use_speech_input: document.getElementById('use_speech_input').checked,
-      use_speech_output: document.getElementById('use_speech_output').checked,
-      tts_engine_url: document.getElementById('tts_engine_url').value,
-      tts_api_key: document.getElementById('tts_api_key').value,
-      tts_voice: document.getElementById('tts_voice').value,
-      tts_model: document.getElementById('tts_model').value
-    };
-    try{
-      const res = await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(cfg) });
-      if (res.ok) { alert('Systemeinstellungen gespeichert'); 
-         // reload config to ensure API keys persist in UI
-         setTimeout(async ()=>{ try { const r=await fetch('/api/config'); const c=await r.json(); document.getElementById('openwebui_api_key').value = c.openwebui_api_key || ''; document.getElementById('tts_api_key').value = c.tts_api_key || ''; } catch(e){}} , 250);
-      }
-      else { alert('Fehler beim Speichern'); }
-    }catch(e){ alert('Fehler beim Speichern: '+e); }
-  });
+            // Panel toggle functionality
+            systemBtn?.addEventListener('click', () => {
+                const isVisible = systemPanel.style.display === 'block';
+                systemPanel.style.display = isVisible ? 'none' : 'block';
+                avatarPanel.style.display = 'none';
+                if (!isVisible) loadSystemConfig();
+            });
 
-  // Test OpenWebUI
-  document.getElementById('test-openwebui-btn').addEventListener('click', async ()=>{
-    const btn = document.getElementById('test-openwebui-btn'); btn.disabled=true;
-    try { const r = await fetch('/api/test/openwebui'); const j = await r.json(); alert('OpenWebUI Test: ' + (j.ok ? 'OK (status '+j.status+')' : ('Fehler: '+JSON.stringify(j)))); } catch(e){ alert('Fehler beim Test: '+e); }
-    btn.disabled=false;
-  });
+            avatarBtn?.addEventListener('click', () => {
+                const isVisible = avatarPanel.style.display === 'block';
+                avatarPanel.style.display = isVisible ? 'none' : 'block';
+                systemPanel.style.display = 'none';
+                if (!isVisible) loadAvatarSettings();
+            });
 
-  // Test TTS
-  document.getElementById('test-tts-btn').addEventListener('click', async ()=>{
-    const btn = document.getElementById('test-tts-btn'); btn.disabled=true;
-    try {
-      const payload = {
-        url: document.getElementById('tts_engine_url').value,
-        key: document.getElementById('tts_api_key').value,
-        model: document.getElementById('tts_model').value,
-        voice: document.getElementById('tts_voice').value
-      };
-      const r = await fetch('/api/test/tts', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-      const j = await r.json();
-      alert('TTS Test: ' + (j.ok ? 'OK (status '+j.status+')' : ('Fehler: '+JSON.stringify(j))));
-    } catch(e){ alert('Fehler beim TTS Test: '+e); }
-    btn.disabled=false;
-  });
+            // Conversation management
+            clearConvBtn?.addEventListener('click', () => {
+                if (confirm('Möchten Sie die Unterhaltung wirklich löschen?')) {
+                    if (typeof window.clearConversation === 'function') {
+                        window.clearConversation();
+                    }
+                }
+            });
 
-  // View logs
-  document.getElementById('view-system-log').addEventListener('click', async ()=>{
-    const r = await fetch('/api/logs/system'); const j = await r.json(); alert('SystemLog:\n' + (j.content||''));
-  });
-  document.getElementById('view-all-log').addEventListener('click', async ()=>{
-    const r = await fetch('/api/logs/all'); const j = await r.json(); alert('AllLog:\n' + (j.content||''));
-  });
+            exportConvBtn?.addEventListener('click', () => {
+                if (typeof window.exportConversation === 'function') {
+                    window.exportConversation();
+                }
+            });
 
-  // Save avatar settings
-  document.getElementById('save-avatar-btn').addEventListener('click', ()=>{
-    const av = {
-      avatar_name: document.getElementById('avatar_name').value,
-      type: document.getElementById('avatar_type_panel').value,
-      skin_color: document.getElementById('skin_color_panel').value,
-      hair_color: document.getElementById('hair_color_panel').value,
-      top_style: document.getElementById('top_style_panel').value,
-      system_prompt: document.getElementById('avatar_system_prompt').value
-    };
-    localStorage.setItem('avatarSettings', JSON.stringify(av));
-    alert('Avatar Einstellungen gespeichert');
-  });
+            // System configuration management
+            async function loadSystemConfig() {
+                try {
+                    const res = await fetch('/api/config');
+                    const cfg = await res.json();
+                    
+                    // Populate form fields
+                    const fields = {
+                        'openwebui_url': cfg.openwebui_url || '',
+                        'openwebui_api_key': cfg.openwebui_api_key || '',
+                        'default_model': cfg.default_model || 'gpt-4o-mini',
+                        'tts_engine_url': cfg.tts_engine_url || '',
+                        'tts_api_key': cfg.tts_api_key || '',
+                        'tts_voice': cfg.tts_voice || 'alloy',
+                        'tts_model': cfg.tts_model || 'tts-1',
+                        'tts_speed': cfg.tts_speed || 1.0,
+                        'speech_recognition_lang': cfg.speech_recognition_lang || 'de-DE'
+                    };
 
-  // Show quality when 3D selected and notify avatar3D loader
-  document.getElementById('avatar_type_panel').addEventListener('change', ()=>{
-    const qualWrapper = document.getElementById('quality-wrapper');
-    qualWrapper.style.display = (document.getElementById('avatar_type_panel').value === '3d') ? 'inline-block' : 'none';
-  });
-  document.getElementById('avatar_quality').addEventListener('change', ()=>{
-    const q = document.getElementById('avatar_quality').value;
-    if (window.avatar3D && typeof window.avatar3D.loadQuality === 'function') {
-      window.avatar3D.loadQuality(q);
-    }
-  });
+                    Object.entries(fields).forEach(([id, value]) => {
+                        const element = document.getElementById(id);
+                        if (element) {
+                            if (element.type === 'checkbox') {
+                                element.checked = !!cfg[id];
+                            } else {
+                                element.value = value;
+                            }
+                        }
+                    });
 
-});
-</script>
-</body></html>
+                    // Update TTS speed display
+                    updateTTSSpeedDisplay();
+                    
+                    // Load log mode from localStorage
+                    const logMode = localStorage.getItem('logMode') || 'none';
+                    const logModeSelect = document.getElementById('log_mode');
+                    if (logModeSelect) logModeSelect.value = logMode;
+
+                } catch (e) {
+                    console.warn('Could not load system config:', e);
+                    showNotification('❌ Systemkonfiguration konnte nicht geladen werden', 'error');
+                }
+            }
+
+            function updateTTSSpeedDisplay() {
+                const speedSlider = document.getElementById('tts_speed');
+                const speedValue = document.getElementById('tts_speed_value');
+                if (speedSlider && speedValue) {
+                    speedValue.textContent = speedSlider.value + 'x';
+                    speedSlider.addEventListener('input', () => {
+                        speedValue.textContent = speedSlider.value + 'x';
+                    });
+                }
+            }
+
+            // Avatar settings management
+            function loadAvatarSettings() {
+                const settings = JSON.parse(localStorage.getItem('avatarSettings') || '{}');
+                
+                const fields = {
+                    'avatar_name': settings.avatar_name || 'Ava',
+                    'avatar_type_panel': settings.type || '3d',
+                    'avatar_quality': settings.quality || 'high',
+                    'skin_color_panel': settings.skin_color || '#f2d0b3',
+                    'hair_color_panel': settings.hair_color || '#2b1b12',
+                    'top_style_panel': settings.top_style || 'tshirt',
+                    'avatar_system_prompt': settings.system_prompt || '',
+                    'animation_speed': settings.animation_speed || 1.0
+                };
+
+                Object.entries(fields).forEach(([id, value]) => {
+                    const element = document.getElementById(id);
+                    if (element) element.value = value;
+                });
+
+                // Update checkboxes
+                const checkboxes = {
+                    'enable_emotions': settings.enable_emotions !== false,
+                    'enable_blinking': settings.enable_blinking !== false,
+                    'enable_breathing': settings.enable_breathing !== false
+                };
+
+                Object.entries(checkboxes).forEach(([id, checked]) => {
+                    const element = document.getElementById(id);
+                    if (element) element.checked = checked;
+                });
+
+                // Update quality visibility and animation speed display
+                updateQualityVisibility();
+                updateAnimationSpeedDisplay();
+                updateAvatarQualityIndicator();
+            }
+
+            function updateQualityVisibility() {
+                const avatarType = document.getElementById('avatar_type_panel');
+                const qualityWrapper = document.getElementById('quality-wrapper');
+                if (avatarType && qualityWrapper) {
+                    qualityWrapper.style.display = avatarType.value === '3d' ? 'block' : 'none';
+                }
+            }
+
+            function updateAnimationSpeedDisplay() {
+                const speedSlider = document.getElementById('animation_speed');
+                const speedValue = document.getElementById('animation_speed_value');
+                if (speedSlider && speedValue) {
+                    speedValue.textContent = speedSlider.value + 'x';
+                    speedSlider.addEventListener('input', () => {
+                        speedValue.textContent = speedSlider.value + 'x';
+                    });
+                }
+            }
+
+            function updateAvatarQualityIndicator() {
+                const indicator = document.getElementById('avatar-quality');
+                const typeSelect = document.getElementById('avatar_type_panel');
+                const qualitySelect = document.getElementById('avatar_quality');
+                
+                if (indicator && typeSelect) {
+                    const type = typeSelect.value === '3d' ? '3D' : '2D';
+                    const quality = qualitySelect?.value || 'high';
+                    indicator.textContent = `${type} ${quality.charAt(0).toUpperCase() + quality.slice(1)}`;
+                }
+            }
+
+            // Event listeners for avatar settings
+            document.getElementById('avatar_type_panel')?.addEventListener('change', () => {
+                updateQualityVisibility();
+                updateAvatarQualityIndicator();
+            });
+
+            document.getElementById('avatar_quality')?.addEventListener('change', () => {
+                updateAvatarQualityIndicator();
+                // Notify 3D avatar to change quality
+                if (window.avatar3D && typeof window.avatar3D.loadQuality === 'function') {
+                    const quality = document.getElementById('avatar_quality').value;
+                    window.avatar3D.loadQuality(quality);
+                }
+            });
+
+            // Save system settings
+            document.getElementById('save-system-btn')?.addEventListener('click', async () => {
+                const btn = document.getElementById('save-system-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '💾 Speichere...';
+                btn.disabled = true;
+
+                try {
+                    const cfg = {
+                        openwebui_url: document.getElementById('openwebui_url').value,
+                        openwebui_api_key: document.getElementById('openwebui_api_key').value,
+                        default_model: document.getElementById('default_model').value,
+                        use_speech_input: document.getElementById('use_speech_input').checked,
+                        use_speech_output: document.getElementById('use_speech_output').checked,
+                        tts_engine_url: document.getElementById('tts_engine_url').value,
+                        tts_api_key: document.getElementById('tts_api_key').value,
+                        tts_voice: document.getElementById('tts_voice').value,
+                        tts_model: document.getElementById('tts_model').value,
+                        tts_speed: parseFloat(document.getElementById('tts_speed').value),
+                        speech_recognition_lang: document.getElementById('speech_recognition_lang').value
+                    };
+
+                    const res = await fetch('/api/config', { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify(cfg) 
+                    });
+
+                    if (res.ok) {
+                        // Save log mode to localStorage
+                        const logMode = document.getElementById('log_mode').value;
+                        localStorage.setItem('logMode', logMode);
+                        
+                        showNotification('✅ Systemeinstellungen gespeichert', 'success');
+                        
+                        // Reload config to ensure keys persist
+                        setTimeout(loadSystemConfig, 500);
+                    } else {
+                        throw new Error(`HTTP ${res.status}`);
+                    }
+                } catch (e) {
+                    console.error('Save system config error:', e);
+                    showNotification('❌ Fehler beim Speichern: ' + e.message, 'error');
+                } finally {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }
+            });
+
+            // Test OpenWebUI
+            document.getElementById('test-openwebui-btn')?.addEventListener('click', async () => {
+                const btn = document.getElementById('test-openwebui-btn');
+                const originalText = btn.textContent;
+                btn.innerHTML = '<div class="loading-indicator"></div> Teste...';
+                btn.disabled = true;
+
+                try {
+                    const res = await fetch('/api/test/openwebui');
+                    const data = await res.json();
+                    
+                    // Update diagnostics display
+                    updateSystemDiagnostics(data);
+                    
+                    if (data.ok) {
+                        showNotification('✅ OpenWebUI Test erfolgreich', 'success');
+                    } else {
+                        showNotification('❌ OpenWebUI Test fehlgeschlagen: ' + JSON.stringify(data.tests), 'error');
+                    }
+                } catch (e) {
+                    showNotification('❌ Test Fehler: ' + e.message, 'error');
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            });
+
+            // Test TTS
+            document.getElementById('test-tts-btn')?.addEventListener('click', async () => {
+                const btn = document.getElementById('test-tts-btn');
+                const originalText = btn.textContent;
+                btn.innerHTML = '<div class="loading-indicator"></div> Teste...';
+                btn.disabled = true;
+
+                try {
+                    const payload = {
+                        url: document.getElementById('tts_engine_url').value,
+                        key: document.getElementById('tts_api_key').value,
+                        model: document.getElementById('tts_model').value,
+                        voice: document.getElementById('tts_voice').value
+                    };
+
+                    const res = await fetch('/api/test/tts', { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify(payload) 
+                    });
+                    const data = await res.json();
+                    
+                    // Update TTS diagnostics
+                    updateTTSDiagnostics(data);
+                    
+                    if (data.ok) {
+                        showNotification('✅ TTS Test erfolgreich', 'success');
+                        
+                        // Play test audio if available
+                        if (data.audio_data) {
+                            try {
+                                const audioBlob = new Blob([Uint8Array.from(atob(data.audio_data), c => c.charCodeAt(0))], 
+                                    { type: data.content_type || 'audio/mpeg' });
+                                const audioUrl = URL.createObjectURL(audioBlob);
+                                const audio = new Audio(audioUrl);
+                                audio.play().then(() => {
+                                    setTimeout(() => URL.revokeObjectURL(audioUrl), 5000);
+                                });
+                            } catch (audioError) {
+                                console.warn('Could not play test audio:', audioError);
+                            }
+                        }
+                    } else {
+                        showNotification('❌ TTS Test fehlgeschlagen: ' + (data.error || JSON.stringify(data.diagnostics)), 'error');
+                    }
+                } catch (e) {
+                    showNotification('❌ TTS Test Fehler: ' + e.message, 'error');
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            });
+
+            // Discover TTS models
+            document.getElementById('discover-tts-models-btn')?.addEventListener('click', async () => {
+                const btn = document.getElementById('discover-tts-models-btn');
+                btn.disabled = true;
+                btn.textContent = '🔍 Suche...';
+
+                try {
+                    const res = await fetch('/api/tts/models');
+                    const data = await res.json();
+                    
+                    if (data.models && data.models.length > 0) {
+                        const modelList = data.models.map(m => m.id).join('\n');
+                        alert('Verfügbare TTS Modelle:\n\n' + modelList + 
+                              '\n\nVorgeschlagene Stimmen:\n' + data.suggested_voices.join(', '));
+                    } else {
+                        alert('Keine TTS-Modelle gefunden. Stellen Sie sicher, dass die TTS-Engine konfiguriert ist.');
+                    }
+                } catch (e) {
+                    alert('Fehler beim Abrufen der TTS-Modelle: ' + e.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = '🔍 TTS Modelle';
+                }
+            });
+
+            // View logs
+            document.getElementById('view-system-log')?.addEventListener('click', async () => {
+                try {
+                    const res = await fetch('/api/logs/system');
+                    const data = await res.json();
+                    showLogModal('System Log', data.content || 'Keine Logs verfügbar');
+                } catch (e) {
+                    alert('Fehler beim Laden des System-Logs: ' + e.message);
+                }
+            });
+
+            document.getElementById('view-all-log')?.addEventListener('click', async () => {
+                try {
+                    const res = await fetch('/api/logs/all');
+                    const data = await res.json();
+                    showLogModal('All Logs', data.content || 'Keine Logs verfügbar');
+                } catch (e) {
+                    alert('Fehler beim Laden der All-Logs: ' + e.message);
+                }
+            });
+
+            // Save avatar settings
+            document.getElementById('save-avatar-btn')?.addEventListener('click', () => {
+                const settings = {
+                    avatar_name: document.getElementById('avatar_name').value,
+                    type: document.getElementById('avatar_type_panel').value,
+                    quality: document.getElementById('avatar_quality').value,
+                    skin_color: document.getElementById('skin_color_panel').value,
+                    hair_color: document.getElementById('hair_color_panel').value,
+                    top_style: document.getElementById('top_style_panel').value,
+                    system_prompt: document.getElementById('avatar_system_prompt').value,
+                    animation_speed: parseFloat(document.getElementById('animation_speed').value),
+                    enable_emotions: document.getElementById('enable_emotions').checked,
+                    enable_blinking: document.getElementById('enable_blinking').checked,
+                    enable_breathing: document.getElementById('enable_breathing').checked
+                };
+
+                localStorage.setItem('avatarSettings', JSON.stringify(settings));
+                showNotification('✅ Avatar-Einstellungen gespeichert', 'success');
+                
+                // Notify main script about settings change
+                if (typeof window.setAvatarSettings === 'function') {
+                    window.setAvatarSettings(settings);
+                }
+                
+                updateAvatarQualityIndicator();
+            });
+
+            // Preview emotions
+            document.getElementById('preview-emotions-btn')?.addEventListener('click', () => {
+                const emotions = ['normal', 'freude', 'traurig', 'wütend', 'überrascht', 'denkend'];
+                let index = 0;
+                
+                const previewInterval = setInterval(() => {
+                    const emotion = emotions[index];
+                    
+                    if (window.currentAvatar && typeof window.currentAvatar.setEmotion === 'function') {
+                        window.currentAvatar.setEmotion(emotion);
+                    }
+                    
+                    showNotification(`😊 Emotion: ${emotion}`, 'info');
+                    index++;
+                    
+                    if (index >= emotions.length) {
+                        clearInterval(previewInterval);
+                        setTimeout(() => {
+                            if (window.currentAvatar && typeof window.currentAvatar.setEmotion === 'function') {
+                                window.currentAvatar.setEmotion('normal');
+                            }
+                        }, 1000);
+                    }
+                }, 1500);
+            });
+
+            // Reset avatar settings
+            document.getElementById('reset-avatar-btn')?.addEventListener('click', () => {
+                if (confirm('Möchten Sie alle Avatar-Einstellungen zurücksetzen?')) {
+                    localStorage.removeItem('avatarSettings');
+                    loadAvatarSettings();
+                    showNotification('🔄 Avatar-Einstellungen zurückgesetzt', 'info');
+                    
+                    if (typeof window.switchAvatar === 'function') {
+                        window.switchAvatar();
+                    }
+                }
+            });
+
+            // Utility functions
+            function updateSystemDiagnostics(data) {
+                const diagnosticsDiv = document.getElementById('system-diagnostics');
+                if (!diagnosticsDiv) return;
+                
+                diagnosticsDiv.style.display = 'grid';
+                
+                const tests = data.tests || {};
+                const diagnostics = [
+                    ['diag-url', 'URL', tests.url_accessible],
+                    ['diag-auth', 'Auth', tests.auth_valid],
+                    ['diag-models', 'Modelle', tests.models_available],
+                    ['diag-chat', 'Chat', tests.chat_endpoint]
+                ];
+                
+                diagnostics.forEach(([id, label, status]) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        const span = element.querySelector('span');
+                        if (span) {
+                            span.textContent = status ? '✅' : '❌';
+                        }
+                        element.className = `diagnostic-item ${status ? 'success' : 'error'}`;
+                    }
+                });
+            }
+
+            function updateTTSDiagnostics(data) {
+                const diagnosticsDiv = document.getElementById('tts-diagnostics');
+                if (!diagnosticsDiv) return;
+                
+                diagnosticsDiv.style.display = 'grid';
+                
+                const diag = data.diagnostics || {};
+                const diagnostics = [
+                    ['tts-diag-url', 'URL', diag.url_configured],
+                    ['tts-diag-auth', 'Auth', diag.auth_valid],
+                    ['tts-diag-model', 'Modell', diag.model_configured],
+                    ['tts-diag-audio', 'Audio', diag.speech_generated]
+                ];
+                
+                diagnostics.forEach(([id, label, status]) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        const span = element.querySelector('span');
+                        if (span) {
+                            span.textContent = status ? '✅' : '❌';
+                        }
+                        element.className = `diagnostic-item ${status ? 'success' : 'error'}`;
+                    }
+                });
+            }
+
+            function showNotification(message, type = 'info') {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `status-message ${type}`;
+                notification.textContent = message;
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 10000;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: 500;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    background: ${type === 'error' ? '#dc2626' : type === 'success' ? '#059669' : '#3b82f6'};
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Auto-remove after 4 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 4000);
+            }
+
+            function showLogModal(title, content) {
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.8);
+                    z-index: 10001;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                `;
+                
+                modal.innerHTML = `
+                    <div style="
+                        background: #1f2937;
+                        color: white;
+                        padding: 20px;
+                        border-radius: 12px;
+                        max-width: 80%;
+                        max-height: 80%;
+                        overflow: auto;
+                        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                    ">
+                        <h3>${title}</h3>
+                        <pre style="
+                            background: #111827;
+                            padding: 12px;
+                            border-radius: 6px;
+                            overflow: auto;
+                            max-height: 400px;
+                            font-family: monospace;
+                            font-size: 0.9em;
+                            white-space: pre-wrap;
+                        ">${content}</pre>
+                        <button onclick="this.closest('.modal').remove()" style="
+                            margin-top: 12px;
+                            padding: 8px 16px;
+                            background: #3b82f6;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                        ">Schließen</button>
+                    </div>
+                `;
+                
+                modal.className = 'modal';
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) modal.remove();
+                });
+                
+                document.body.appendChild(modal);
+            }
+
+            // Close panels when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!systemPanel.contains(e.target) && !systemBtn.contains(e.target)) {
+                    systemPanel.style.display = 'none';
+                }
+                if (!avatarPanel.contains(e.target) && !avatarBtn.contains(e.target)) {
+                    avatarPanel.style.display = 'none';
+                }
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    switch (e.key) {
+                        case '1':
+                            e.preventDefault();
+                            systemBtn.click();
+                            break;
+                        case '2':
+                            e.preventDefault();
+                            avatarBtn.click();
+                            break;
+                        case 'd':
+                            e.preventDefault();
+                            clearConvBtn.click();
+                            break;
+                    }
+                }
+                if (e.key === 'Escape') {
+                    systemPanel.style.display = 'none';
+                    avatarPanel.style.display = 'none';
+                }
+            });
+
+            console.log('Avatar Chat UI Enhanced - Interface initialized');
+        });
+    </script>
+</body>
+</html>
