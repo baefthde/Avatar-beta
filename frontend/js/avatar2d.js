@@ -1,5 +1,8 @@
 class Avatar2D {
     constructor(containerId) {
+        this.version = '1.0';
+        console.log(`Avatar2D Module Version ${this.version}`);
+        
         this.container = document.getElementById(containerId);
         if (!this.container) {
             console.error('Avatar2D: Container not found:', containerId);
