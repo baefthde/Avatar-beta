@@ -3,7 +3,7 @@
     
     class Avatar3D {
         constructor(containerId) {
-            this.version = '1.0.0';
+            this.version = '1.0';
             console.log(`Avatar3D Module Version ${this.version}`);
             
             this.container = document.getElementById(containerId);
