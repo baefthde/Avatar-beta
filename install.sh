@@ -545,4 +545,3 @@ trap 'echo -e "${RED}❌ Installation failed at line $LINENO${NC}"; exit 1' ERR
 
 # Run main function
 main "$@" nodejs npm
-            ;;
