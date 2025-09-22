@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Avatar Chat UI v6 - Enhanced Installation Script
+# Avatar Chat UI - Installation Script
 # Automatische Installation für Ubuntu/Debian und andere Linux-Distributionen
 
 set -e  # Exit on any error
@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 # ASCII Art Banner
 echo -e "${CYAN}"
 echo "╔════════════════════════════════════════════════════╗"
-echo "║              Avatar Chat UI v6 Enhanced           ║"
+echo "║                    Avatar Chat UI                 ║"
 echo "║                  Installation Script              ║"
 echo "╚════════════════════════════════════════════════════╝"
 echo -e "${NC}"
@@ -211,8 +211,8 @@ install_dependencies() {
         echo -e "${YELLOW}Creating package.json...${NC}"
         cat > package.json << 'EOF'
 {
-  "name": "avatar-chat-backend-enhanced",
-  "version": "6.0.0",
+  "name": "avatar-chat-backend",
+  "version": "1.0 Beta",
   "description": "Enhanced Avatar Chat UI Backend",
   "main": "server.js",
   "scripts": {
