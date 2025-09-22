@@ -6,16 +6,29 @@ const router = express.Router();
 const configPath = path.join(__dirname, 'config.json');
 
 function readConfig() {
-    try { return JSON.parse(fs.readFileSync(configPath,'utf-8')); } catch(e){ return {}; }
+    try {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        // Validierung hinzufügen
+        if (!config.openwebui_timeout) config.openwebui_timeout = 20000;
+        return config;
+    } catch(e) {
+        console.error('Fehler beim Lesen der Konfiguration:', e);
+        return {openwebui_timeout: 20000}; // Standardwerte
+    }
 }
 
-function ensureLogFiles(){
-    try{
-        const p1 = path.join(__dirname,'system.log');
-        const p2 = path.join(__dirname,'all.log');
-        if(!fs.existsSync(p1)) fs.writeFileSync(p1,'', 'utf-8');
-        if(!fs.existsSync(p2)) fs.writeFileSync(p2,'', 'utf-8');
-    }catch(e){}
+function ensureLogFiles() {
+    const files = ['system.log', 'all.log'];
+    try {
+        files.forEach(file => {
+            const filePath = path.join(__dirname, file);
+            if (!fs.existsSync(filePath)) {
+                fs.writeFileSync(filePath, '', 'utf-8');
+            }
+        });
+    } catch(e) {
+        console.error('Fehler beim Erstellen der Log-Dateien:', e);
+    }
 }
 
 function logToFile(filename, message, details = '') {
