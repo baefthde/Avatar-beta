@@ -434,10 +434,7 @@
             if (this.mixer) {
                 this.mixer.update(deltaTime);
             }
-            
-            // Idle rotation
-            this.model.rotation.y += 0.002;
-            
+                       
             // Speaking animation
             if (this.jawSpeaking) {
                 const time = Date.now() * 0.01;
