@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Version 1.0
+
 echo "Starting Avatar Chat UI v6 Enhanced in development mode..."
 cd backend
 if [ ! -f server.js ]; then
