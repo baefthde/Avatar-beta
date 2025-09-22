@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Version 1.0
+
 # Avatar Chat UI - Installation Script
 # Automatische Installation für Ubuntu/Debian und andere Linux-Distributionen
 
