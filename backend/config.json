@@ -1,11 +1,27 @@
 {
-  "openwebui_url": "https://localhost:443",
-  "openwebui_api_key": "",
-  "use_speech_input": true,
-  "use_speech_output": true,
-  "default_model": "gpt-4o-mini",
-  "tts_engine_url": "",
-  "tts_api_key": "",
-  "tts_voice": "",
-  "tts_model": ""
+    "openwebui_timeout": 20000,
+    "max_message_length": 2000,
+    "max_history_entries": 50,
+    "avatar_settings": {
+        "default_type": "2d",
+        "default_quality": "high",
+        "animation_fps": 60,
+        "model_path": "assets/models/"
+    },
+    "tts_settings": {
+        "enabled": true,
+        "default_voice": "de-DE",
+        "rate": 1.0,
+        "pitch": 1.0
+    },
+    "security": {
+        "max_requests_per_minute": 60,
+        "allowed_origins": ["http://localhost:3000"],
+        "session_timeout": 3600
+    },
+    "logging": {
+        "level": "info",
+        "max_file_size": "10mb",
+        "rotation": "daily"
+    }
 }
