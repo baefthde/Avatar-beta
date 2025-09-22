@@ -1,4 +1,4 @@
-# Avatar Chat UI v6 - Enhanced 🚀
+# Avatar Chat UI 🚀
 
 Eine fortschrittliche Chat-Benutzeroberfläche mit KI-Avatar, Spracherkennung, Text-zu-Sprache und erweiterten 3D-Funktionen.
 
@@ -236,5 +236,3 @@ npm run test:frontend
 ---
 
 **Made with ❤️ for the AI Avatar Community**
-
-*Letzte Aktualisierung: Dezember 2024 - Version 6.0 Enhanced*
