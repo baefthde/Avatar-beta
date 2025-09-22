@@ -114,32 +114,6 @@ open http://localhost:3000
 3. **TTS Modelle**: Verfügbare Modelle anzeigen
 4. **Logs anzeigen**: System- oder All-Logs
 
-## 🔍 Problembehandlung
-
-### TTS funktioniert nicht
-1. **TTS-Test** ausführen → Diagnostics prüfen
-2. **URL korrekt?** (https://api.openai.com)
-3. **API Key gültig?** 
-4. **Modell unterstützt?** (`tts-1` verwenden)
-5. **Netzwerk-Firewall?**
-
-### 3D Avatar wird nicht angezeigt
-1. **WebGL aktiviert?** im Browser
-2. **Three.js Loader** verfügbar?
-3. **OBJ-Dateien** vorhanden?
-4. **Browser-Konsole** für Fehler prüfen
-
-### Spracheingabe funktioniert nicht
-1. **Mikrofon-Berechtigung** erteilt?
-2. **HTTPS-Verbindung?** (für Web Speech API erforderlich)
-3. **Browser unterstützt** Web Speech API?
-4. **Sprache korrekt** eingestellt?
-
-### OpenWebUI Verbindung
-1. **URL erreichbar?** (Ping testen)
-2. **API Key korrekt?**
-3. **CORS aktiviert?** in OpenWebUI
-4. **Firewall/Proxy** blockiert?
 
 ## 📁 Dateistruktur
 
@@ -169,55 +143,13 @@ Avatar-beta/
 
 ## 🔧 Entwicklung
 
-### Debug-Modus aktivieren
-```javascript
-window.avatarChatUI.debug = true;
-```
 
-### Logging Level ändern
-```json
-{
-  "logging": {
-    "level": "debug"
-  }
-}
-```
+
 
 ### Neue TTS-Engine hinzufügen
 1. `backend/api.js` - TTS-Endpoint erweitern
 2. OpenAI-kompatible API implementieren
 3. Diagnostics für neue Engine hinzufügen
-
-### Custom Avatar-Modelle
-1. 3D-Modelle in `frontend/assets/avatars/3d/` ablegen
-2. OBJ oder GLB Format verwenden
-3. Morph-Targets für Emotionen definieren
-
-## 🚀 Neue Features in v6
-
-### Backend-Verbesserungen
-- **Enhanced API** mit besserer Fehlerbehandlung
-- **Conversation History** Management
-- **Detaillierte TTS-Diagnostics** 
-- **Model Discovery** Endpoints
-- **Improved Logging** System
-- **Health Checks** für alle Services
-
-### Frontend-Verbesserungen
-- **Speech Recognition** Integration
-- **Enhanced 2D Avatar** mit Emotionen
-- **Improved 3D Avatar** mit Three.js r128
-- **Real-time Diagnostics** UI
-- **Better Error Handling**
-- **Responsive Design** Updates
-
-### UX/UI-Verbesserungen
-- **Modern Dark Theme** mit Gradients
-- **Animated Transitions** und Feedback
-- **Keyboard Shortcuts** Support
-- **Status Notifications** System
-- **Loading Indicators** 
-- **Connection Monitoring**
 
 ## 📋 API-Dokumentation
 
@@ -231,19 +163,6 @@ Content-Type: application/json
   "model": "gpt-4o-mini",
   "conversation_id": "12345",
   "history": [...]
-}
-```
-
-### TTS Test Endpoint
-```http
-POST /api/test/tts
-Content-Type: application/json
-
-{
-  "url": "https://api.openai.com",
-  "key": "sk-...",
-  "model": "tts-1",
-  "voice": "alloy"
 }
 ```
 
@@ -261,38 +180,7 @@ POST /api/log/system
 POST /api/log/all
 ```
 
-## 🎨 Customization
 
-### Avatar-Appearance
-```javascript
-// Avatar-Einstellungen ändern
-window.setAvatarSettings({
-  skin_color: "#f2d0b3",
-  hair_color: "#2b1b12",
-  type: "3d",
-  quality: "high"
-});
-```
-
-### TTS-Konfiguration
-```javascript
-// TTS-Parameter anpassen
-const ttsConfig = {
-  speed: 1.2,
-  voice: "nova",
-  model: "tts-1-hd"
-};
-```
-
-### Emotion-Mapping
-```javascript
-// Custom Emotion-Erkennung
-const emotionMap = {
-  "glücklich|freude": "freude",
-  "traurig|trauer": "traurig",
-  "wütend|ärger": "wütend"
-};
-```
 
 ## 🔒 Sicherheit
 
@@ -330,88 +218,6 @@ npm run test:api
 # Frontend Tests (geplant)
 npm run test:frontend
 ```
-
-## 📊 Performance
-
-### Optimierungen
-- **Three.js r128** für bessere 3D-Performance
-- **Canvas 2D** optimiert für 2D-Avatar
-- **Audio Streaming** für TTS
-- **Lazy Loading** für 3D-Modelle
-
-### Monitoring
-- **Connection Status** Anzeige
-- **Response Time** Tracking
-- **Error Rate** Monitoring
-- **Memory Usage** (Browser DevTools)
-
-## 🔄 Updates & Migration
-
-### Von v5 auf v6
-1. **Backup** der config.json erstellen
-2. **Code aktualisieren** 
-3. **Dependencies installieren**
-4. **Konfiguration überprüfen**
-5. **Tests durchführen**
-
-### Breaking Changes
-- **Three.js** Version auf r128 aktualisiert
-- **API Endpoints** erweitert
-- **Config Schema** verändert
-- **Avatar Settings** Format geändert
-
-## 🤝 Contributing
-
-### Entwicklung
-1. **Fork** des Repositories
-2. **Feature Branch** erstellen
-3. **Changes implementieren**
-4. **Tests durchführen**
-5. **Pull Request** stellen
-
-### Bug Reports
-- **Issue Template** verwenden
-- **Logs** anhängen
-- **Browser/OS** angeben
-- **Reproduktionsschritte** beschreiben
-
-## 📞 Support
-
-### Hilfe erhalten
-- **GitHub Issues** für Bugs
-- **Discussions** für Fragen
-- **Wiki** für Dokumentation
-- **Discord** für Community-Support
-
-### Known Issues
-- **CapsuleGeometry** nicht in Three.js r128
-- **CORS** Probleme bei localhost
-- **Safari** Speech Recognition limitiert
-- **Mobile** Touch-Gesten fehlen noch
-
-## 🗺️ Roadmap
-
-### v6.1 (geplant)
-- [ ] **TypeScript** Migration
-- [ ] **Unit Tests** implementieren
-- [ ] **PWA** Support
-- [ ] **Mobile** Optimierungen
-
-### v6.2 (geplant)
-- [ ] **Voice Commands** 
-- [ ] **Avatar Expressions** API
-- [ ] **Multi-Language** UI
-- [ ] **Themes** System
-
-### v7.0 (Zukunft)
-- [ ] **WebRTC** Integration
-- [ ] **AI Voice Cloning**
-- [ ] **VR/AR** Support
-- [ ] **Plugin System**
-
-## 📄 Lizenz
-
-MIT License - siehe [LICENSE](LICENSE) Datei für Details.
 
 ## 👥 Team
 
