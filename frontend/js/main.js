@@ -1,3 +1,7 @@
+// Version information
+const APP_VERSION = '1.0';
+console.log(`Avatar Chat UI Version ${APP_VERSION}`);
+
 // main.js - Enhanced Avatar Chat UI
 document.addEventListener("DOMContentLoaded", async () => {
     const chatInput = document.getElementById("chat-input");
