@@ -1,7 +1,7 @@
 {
-  "name": "avatar-chat-backend-enhanced",
-  "version": "6.0.0",
-  "description": "Enhanced Avatar Chat UI Backend with advanced TTS, speech recognition, and 3D avatar support",
+  "name": "avatar-chat-ki",
+  "version": "1.0.0 Beta",
+  "description": "Avatar Chat UI Backend with advanced TTS, speech recognition, and 3D avatar support",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
