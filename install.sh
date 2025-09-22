@@ -160,7 +160,7 @@ install_nodejs() {
             fi
             ;;
         *)
-            echo -e "${YELLOW}Please install Node.js v20+ manually from: https://nodejs.org${NC}"
+            echo "Please install Node.js v20+ manually from: https://nodejs.org"
             read -p "Press Enter when Node.js is installed..."
             ;;
     esac
