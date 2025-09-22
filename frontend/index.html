@@ -10,7 +10,7 @@
     <link rel="preload" href="js/avatar3d.js" as="script">
     <link rel="stylesheet" href="css/style.css" />
     <style>
-        /* Additional styles for enhanced features */
+
         .status-message {
             animation: fadeIn 0.3s ease-in;
         }
@@ -145,7 +145,7 @@
         </section>
     </main>
 
-    <!-- Enhanced System settings panel -->
+    <!-- System settings panel -->
     <aside id="system-panel" class="panel" style="position:fixed;right:12px;top:80px;width:600px;max-height:85vh;background:rgba(7,16,40,0.95);border-radius:12px;padding:16px;overflow:auto;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.7);z-index:999;border: 1px solid rgba(255,255,255,0.1);">
         <h2>🔧 Systemeinstellungen</h2>
         
@@ -209,7 +209,7 @@
         </div>
     </aside>
 
-    <!-- Enhanced Avatar settings panel -->
+    <!-- Avatar settings panel -->
     <aside id="avatar-panel" class="panel" style="position:fixed;right:12px;top:80px;width:600px;max-height:85vh;background:rgba(7,16,40,0.95);border-radius:12px;padding:16px;overflow:auto;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.7);z-index:999;border: 1px solid rgba(255,255,255,0.1);">
         <h2>👤 Avatar Einstellungen</h2>
         
@@ -262,16 +262,16 @@
         </div>
     </aside>
 
-    <!-- Enhanced JavaScript loading with better error handling -->
+    <!--  JavaScript loading with better error handling -->
     <script>
         // Global configuration and error handling
         window.avatarChatUI = {
-            version: '6.0-enhanced',
+            version: '1.0 Beta',
             debug: false,
             errors: []
         };
 
-        // Enhanced error handler
+        // error handler
         window.onerror = function(msg, url, lineNo, columnNo, error) {
             const errorInfo = {
                 message: msg,
@@ -310,7 +310,7 @@
     <script src="js/avatar3d.js"></script>
     <script src="js/main.js"></script>
 
-    <!-- Enhanced UI Management Script -->
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // UI element references
@@ -903,7 +903,7 @@
                 }
             });
 
-            console.log('Avatar Chat UI Enhanced - Interface initialized');
+            console.log('Avatar Chat UI - Interface initialized');
         });
     </script>
 </body>
