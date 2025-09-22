@@ -1,4 +1,4 @@
-# Avatar Chat UI 🚀
+# Avatar Chat UI v6 - Enhanced 🚀
 
 Eine fortschrittliche Chat-Benutzeroberfläche mit KI-Avatar, Spracherkennung, Text-zu-Sprache und erweiterten 3D-Funktionen.
 
