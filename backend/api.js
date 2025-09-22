@@ -136,7 +136,8 @@ router.post('/config', (req,res) => {
         const allowed = [
             "openwebui_url", "openwebui_api_key", "use_speech_input", "use_speech_output",
             "default_model", "tts_engine_url", "tts_api_key", "tts_voice", "tts_model",
-            "tts_speed", "tts_volume", "speech_recognition_lang"
+            "tts_speed", "tts_volume", "speech_recognition_lang", "openwebui_timeout",
+            "enable_system_log", "enable_all_log"
         ];
         const cur = readConfig();
         allowed.forEach(k => { 
@@ -226,10 +227,16 @@ router.get('/test/openwebui', async (req, res) => {
         logToFile('system.log', `Testing OpenWebUI health endpoint: ${healthUrl}`);
         
         try {
+            const testTimeout = cfg.openwebui_timeout || 20000;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), testTimeout);
+            
             const healthResp = await fetch(healthUrl, { 
                 headers: { 'Authorization': 'Bearer ' + apiKey },
-                timeout: 5000
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
+            
             tests.url_accessible = true;
             tests.auth_valid = healthResp.ok || healthResp.status === 404; // 404 is ok, means server is running
             
@@ -240,11 +247,17 @@ router.get('/test/openwebui', async (req, res) => {
         
         // Test 2: Models endpoint
         try {
+            const testTimeout = cfg.openwebui_timeout || 20000;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), testTimeout);
+            
             const modelsUrl = url.replace(/\/$/,'') + '/api/models';
             const modelsResp = await fetch(modelsUrl, { 
                 headers: { 'Authorization': 'Bearer ' + apiKey },
-                timeout: 5000
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
+            
             if (modelsResp.ok) {
                 const modelsData = await modelsResp.json();
                 tests.models_available = Array.isArray(modelsData.data) && modelsData.data.length > 0;
@@ -256,6 +269,10 @@ router.get('/test/openwebui', async (req, res) => {
         
         // Test 3: Chat completions endpoint
         try {
+            const testTimeout = cfg.openwebui_timeout || 20000;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), testTimeout);
+            
             const chatUrl = url.replace(/\/$/,'') + '/api/chat/completions';
             const chatResp = await fetch(chatUrl, {
                 method: 'POST',
@@ -268,8 +285,10 @@ router.get('/test/openwebui', async (req, res) => {
                     messages: [{role: "user", content: "Test"}],
                     max_tokens: 5
                 }),
-                timeout: 10000
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
+            
             tests.chat_endpoint = chatResp.ok;
             logToFile('system.log', `Chat endpoint test: ${chatResp.status}`);
         } catch (e) {
