@@ -1,6 +1,6 @@
 {
   "name": "avatar-chat-ki",
-  "version": "1.0 Beta",
+  "version": "Version 1.0",
   "description": "Avatar Chat UI Backend (Version 1.0)",
   "main": "server.js",
   "scripts": {
