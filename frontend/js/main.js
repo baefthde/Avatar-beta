@@ -1,8 +1,8 @@
-// Version information
+// Version 1.0 - Korrigierte TTS-Integration
 const APP_VERSION = '1.0';
 console.log(`Avatar Chat UI Version ${APP_VERSION}`);
 
-// main.js - Enhanced Avatar Chat UI
+// main.js - Enhanced Avatar Chat UI with fixed TTS
 document.addEventListener("DOMContentLoaded", async () => {
     const chatInput = document.getElementById("chat-input");
     const sendBtn = document.getElementById("send-btn");
@@ -27,6 +27,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     let isRecording = false;
     let recognition = null;
     let currentAudio = null;
+    let serverConfig = null; // Cache for server configuration
+
+    // Load server configuration
+    async function loadServerConfig() {
+        try {
+            const res = await fetch('/api/config');
+            if (res.ok) {
+                serverConfig = await res.json();
+                return serverConfig;
+            }
+        } catch (e) {
+            console.warn('Could not load server config:', e);
+        }
+        return null;
+    }
 
     // Initialize Speech Recognition
     function initSpeechRecognition() {
@@ -40,7 +55,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         recognition.continuous = false;
         recognition.interimResults = false;
-        recognition.lang = 'de-DE'; // German by default
+        recognition.lang = 'de-DE'; // Will be updated from server config
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
@@ -71,6 +86,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Initialize speech recognition
     recognition = initSpeechRecognition();
+
+    // Update speech recognition language from server config
+    async function updateSpeechRecognitionLang() {
+        if (recognition && serverConfig?.speech_recognition_lang) {
+            recognition.lang = serverConfig.speech_recognition_lang;
+        }
+    }
 
     // Create microphone button
     function createMicrophoneButton() {
@@ -159,7 +181,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 window.currentAvatar = new window.Avatar3D('avatar-container');
                 if (avatarSettings.quality) {
                     setTimeout(() => {
-                        window.currentAvatar.loadQuality(avatarSettings.quality);
+                        if (window.currentAvatar && typeof window.currentAvatar.loadQuality === 'function') {
+                            window.currentAvatar.loadQuality(avatarSettings.quality);
+                        }
                     }, 100);
                 }
             }
@@ -169,6 +193,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 window.currentAvatar = new window.Avatar2D('avatar-container');
             }
         }
+
+        console.log(`Switched to ${avatarSettings.type} avatar with quality: ${avatarSettings.quality}`);
     }
 
     // Avatar speaking animation
@@ -200,78 +226,85 @@ document.addEventListener("DOMContentLoaded", async () => {
         }, durationMs);
     }
 
-    // Enhanced TTS with better error handling
+    // KORRIGIERTE TTS-Funktion - nutzt jetzt den Backend-Endpunkt
     async function playTTS(text) {
         try {
-            const cfgRes = await fetch('/api/config');
-            const cfg = await cfgRes.json();
+            // Prüfe Server-Konfiguration
+            if (!serverConfig) {
+                serverConfig = await loadServerConfig();
+            }
             
-            if (!cfg.use_speech_output || !cfg.tts_engine_url || !cfg.tts_api_key || !cfg.tts_model) {
+            if (!serverConfig?.use_speech_output || !serverConfig?.tts_engine_url || !serverConfig?.tts_api_key) {
                 console.log("TTS not configured or disabled");
                 return false;
             }
 
             displayStatusMessage("🔊 Generiere Sprache...", "info");
 
-            const ttsUrl = cfg.tts_engine_url.replace(/\/$/, '') + '/v1/audio/speech';
-            const requestBody = {
-                model: cfg.tts_model,
-                voice: cfg.tts_voice || 'alloy',
-                input: text,
-                speed: cfg.tts_speed || 1.0
-            };
-
-            const ttsResp = await fetch(ttsUrl, {
+            // WICHTIG: Nutze den Backend-Endpunkt statt direkter API-Aufrufe
+            const ttsResponse = await fetch('/api/tts/generate', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + cfg.tts_api_key
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify({ text: text })
             });
 
-            if (ttsResp.ok) {
-                const arrayBuffer = await ttsResp.arrayBuffer();
-                const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
-                const audioUrl = URL.createObjectURL(blob);
-                
-                // Stop any currently playing audio
-                if (currentAudio) {
-                    currentAudio.pause();
-                    currentAudio = null;
-                }
-                
-                currentAudio = new Audio(audioUrl);
-                
-                currentAudio.onplay = () => {
-                    displayStatusMessage("🔊 Wiedergabe gestartet", "success");
-                };
-                
-                currentAudio.onended = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    currentAudio = null;
-                };
-                
-                currentAudio.onerror = (e) => {
-                    console.error('Audio playback error:', e);
-                    displayStatusMessage("❌ Audiowiedergabe fehlgeschlagen", "error");
-                    URL.revokeObjectURL(audioUrl);
-                    currentAudio = null;
-                };
-
-                await currentAudio.play();
-                return true;
-                
-            } else {
-                const errorText = await ttsResp.text();
-                console.error('TTS request failed:', errorText);
-                displayStatusMessage(`❌ TTS fehlgeschlagen: ${ttsResp.status}`, "error");
-                return false;
+            if (!ttsResponse.ok) {
+                const errorData = await ttsResponse.json();
+                throw new Error(`TTS Backend Error: ${errorData.error || 'Unknown error'}`);
             }
+
+            // Audio-Blob direkt vom Backend erhalten
+            const audioBlob = await ttsResponse.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            // Stop any currently playing audio
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            
+            currentAudio = new Audio(audioUrl);
+            
+            currentAudio.onplay = () => {
+                displayStatusMessage("🔊 Wiedergabe gestartet", "success");
+            };
+            
+            currentAudio.onended = () => {
+                URL.revokeObjectURL(audioUrl);
+                currentAudio = null;
+                displayStatusMessage("✅ Wiedergabe beendet", "info");
+            };
+            
+            currentAudio.onerror = (e) => {
+                console.error('Audio playback error:', e);
+                displayStatusMessage("❌ Audiowiedergabe fehlgeschlagen", "error");
+                URL.revokeObjectURL(audioUrl);
+                currentAudio = null;
+            };
+
+            await currentAudio.play();
+            return true;
             
         } catch (e) {
             console.error('TTS error:', e);
             displayStatusMessage(`❌ TTS Fehler: ${e.message}`, "error");
+            
+            // Log error to backend
+            try {
+                await fetch('/api/log/system', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: 'TTS playback error',
+                        details: `Error: ${e.message}, Text length: ${text.length}`
+                    })
+                });
+            } catch (logError) {
+                console.warn('Could not log TTS error:', logError);
+            }
+            
             return false;
         }
     }
@@ -327,7 +360,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             // Start avatar animation
             startSpeaking(duration, emotion);
 
-            // Play TTS
+            // Play TTS (korrigierte Version)
             await playTTS(reply);
 
             // Log conversation if enabled
@@ -411,10 +444,33 @@ document.addEventListener("DOMContentLoaded", async () => {
         switchAvatar();
     });
 
-    // Initialize avatar on load
-    setTimeout(() => {
-        switchAvatar();
-    }, 500);
+    // Initialize with server config
+    async function initialize() {
+        try {
+            // Load server configuration
+            await loadServerConfig();
+            
+            // Update speech recognition language
+            await updateSpeechRecognitionLang();
+            
+            // Initialize avatar
+            setTimeout(() => {
+                switchAvatar();
+            }, 500);
+            
+            console.log("Avatar Chat UI initialized successfully with server config");
+            displayStatusMessage("✅ System initialisiert", "success");
+            
+        } catch (e) {
+            console.warn('Initialization warning:', e);
+            displayStatusMessage("⚠️ Initialisierung mit Warnungen abgeschlossen", "warning");
+            
+            // Initialize avatar anyway
+            setTimeout(() => {
+                switchAvatar();
+            }, 500);
+        }
+    }
 
     // Export functions for global access
     window.sendMessage = sendMessage;
@@ -453,11 +509,26 @@ document.addEventListener("DOMContentLoaded", async () => {
         URL.revokeObjectURL(url);
     };
 
-    // Periodic connection check
+    // Reload server config function (for settings panel)
+    window.reloadServerConfig = async () => {
+        serverConfig = null;
+        await loadServerConfig();
+        await updateSpeechRecognitionLang();
+        return serverConfig;
+    };
+
+    // Periodic connection check with config refresh
     setInterval(async () => {
         try {
             const response = await fetch('/api/config');
-            if (!response.ok) {
+            if (response.ok) {
+                const newConfig = await response.json();
+                // Update cached config if server config changed
+                if (JSON.stringify(serverConfig) !== JSON.stringify(newConfig)) {
+                    serverConfig = newConfig;
+                    await updateSpeechRecognitionLang();
+                }
+            } else {
                 displayStatusMessage("⚠️ Verbindung zum Server verloren", "error");
             }
         } catch (e) {
@@ -465,5 +536,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }, 30000); // Check every 30 seconds
 
-    console.log("Avatar Chat UI initialized successfully");
+    // Initialize everything
+    await initialize();
 });

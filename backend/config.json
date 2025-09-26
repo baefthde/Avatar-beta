@@ -1,28 +1,92 @@
 {
     "version": "1.0",
     "openwebui_timeout": 20000,
-    "max_message_length": 2000,
+    "tts_timeout": 15000,
+    "max_message_length": 4096,
     "max_history_entries": 50,
     "avatar_settings": {
-        "default_type": "2d",
+        "default_type": "3d",
         "default_quality": "high",
         "animation_fps": 60,
-        "model_path": "assets/models/"
+        "model_path": "assets/models/",
+        "enable_emotions": true,
+        "enable_blinking": true,
+        "enable_breathing": true
     },
     "tts_settings": {
         "enabled": true,
         "default_voice": "de-DE",
         "rate": 1.0,
-        "pitch": 1.0
+        "pitch": 1.0,
+        "max_text_length": 4096,
+        "audio_format": "mp3",
+        "fallback_enabled": true
+    },
+    "speech_settings": {
+        "enabled": true,
+        "language": "de-DE",
+        "continuous": false,
+        "interim_results": false,
+        "max_alternatives": 1
     },
     "security": {
         "max_requests_per_minute": 60,
-        "allowed_origins": ["http://localhost:3000"],
-        "session_timeout": 3600
+        "allowed_origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+        "session_timeout": 3600,
+        "cors_enabled": true,
+        "rate_limiting": false
     },
     "logging": {
         "level": "info",
         "max_file_size": "10mb",
-        "rotation": "daily"
+        "rotation": "daily",
+        "system_log_enabled": true,
+        "all_log_enabled": false,
+        "error_log_enabled": true,
+        "tts_log_enabled": true
+    },
+    "performance": {
+        "avatar_render_fps": 60,
+        "audio_buffer_size": 4096,
+        "preload_models": true,
+        "cache_tts_audio": false,
+        "optimize_animations": true
+    },
+    "features": {
+        "conversation_export": true,
+        "voice_commands": false,
+        "multilingual_support": true,
+        "avatar_customization": true,
+        "emotion_detection": true,
+        "gesture_recognition": false,
+        "background_music": false
+    },
+    "ui": {
+        "theme": "dark",
+        "show_diagnostics": true,
+        "auto_scroll": true,
+        "typing_indicators": true,
+        "sound_effects": false,
+        "show_timestamps": true,
+        "compact_mode": false
+    },
+    "openai_compatible": {
+        "endpoint_format": "v1",
+        "model_prefix": "",
+        "use_system_messages": true,
+        "max_tokens_default": 512,
+        "temperature_default": 0.7,
+        "stream_default": false
+    },
+    "error_handling": {
+        "retry_attempts": 3,
+        "retry_delay": 1000,
+        "fallback_responses": [
+            "Entschuldigung, ich konnte deine Nachricht nicht verarbeiten.",
+            "Es gab ein technisches Problem. Bitte versuche es erneut.",
+            "Ich bin momentan nicht verfügbar. Bitte habe etwas Geduld."
+        ],
+        "log_errors": true,
+        "send_error_reports": false
     }
 }
