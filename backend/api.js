@@ -1,4 +1,4 @@
-// Version 1.0
+// Version 1.0 - Korrigierte TTS-Integration
 
 const express = require('express');
 const fs = require('fs');
@@ -78,7 +78,8 @@ router.post('/chat', async (req, res) => {
                 'Content-Type':'application/json', 
                 'Authorization': `Bearer ${apiKey}`
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(requestBody),
+            timeout: cfg.openwebui_timeout || 20000
         });
         
         if (!resp.ok) {
@@ -143,6 +144,69 @@ router.post('/chat', async (req, res) => {
     }
 });
 
+// NEUER TTS ENDPOINT - für die Frontend-Nutzung
+router.post('/tts/generate', async (req, res) => {
+    const { text } = req.body;
+    const cfg = readConfig();
+    
+    if (!text || text.trim().length === 0) {
+        return res.status(400).json({ error: 'Text is required' });
+    }
+    
+    if (!cfg.use_speech_output || !cfg.tts_engine_url || !cfg.tts_api_key) {
+        return res.status(400).json({ error: 'TTS not configured or disabled' });
+    }
+    
+    try {
+        logToFile('system.log', `TTS generation request`, `Text length: ${text.length} chars`);
+        
+        const ttsUrl = cfg.tts_engine_url.replace(/\/$/,'') + '/v1/audio/speech';
+        const requestBody = {
+            model: cfg.tts_model || 'tts-1',
+            voice: cfg.tts_voice || 'alloy',
+            input: text.substring(0, 4096), // Limit text length
+            speed: cfg.tts_speed || 1.0
+        };
+        
+        const ttsResp = await fetch(ttsUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + cfg.tts_api_key
+            },
+            body: JSON.stringify(requestBody),
+            timeout: cfg.tts_timeout || 15000
+        });
+        
+        if (!ttsResp.ok) {
+            const errorText = await ttsResp.text();
+            logToFile('system.log', `TTS generation failed ${ttsResp.status}`, errorText);
+            return res.status(ttsResp.status).json({ 
+                error: 'TTS generation failed', 
+                details: errorText 
+            });
+        }
+        
+        // Stream the audio data directly to the client
+        const contentType = ttsResp.headers.get('content-type') || 'audio/mpeg';
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'no-cache');
+        
+        logToFile('system.log', `TTS generation successful`, `Content-Type: ${contentType}`);
+        
+        // Pipe the response
+        ttsResp.body.pipe(res);
+        
+    } catch (err) {
+        console.error('TTS generation error:', err);
+        logToFile('system.log', 'TTS generation error', err.toString());
+        return res.status(500).json({ 
+            error: 'TTS generation failed', 
+            details: err.toString() 
+        });
+    }
+});
+
 // Configuration endpoints
 router.get('/config', (req,res) => { res.json(readConfig()); });
 
@@ -152,7 +216,7 @@ router.post('/config', (req,res) => {
             "openwebui_url", "openwebui_api_key", "use_speech_input", "use_speech_output",
             "default_model", "tts_engine_url", "tts_api_key", "tts_voice", "tts_model",
             "tts_speed", "tts_volume", "speech_recognition_lang", "openwebui_timeout",
-            "enable_system_log", "enable_all_log"
+            "enable_system_log", "enable_all_log", "tts_timeout"
         ];
         const cur = readConfig();
         allowed.forEach(k => { 
@@ -366,6 +430,9 @@ router.post('/test/tts', async (req, res) => {
             voice: ttsVoice || 'alloy'
         };
         
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        
         const resp = await fetch(testUrl, {
             method: 'POST',
             headers: { 
@@ -373,9 +440,10 @@ router.post('/test/tts', async (req, res) => {
                 'Authorization': 'Bearer ' + ttsKey 
             },
             body: JSON.stringify(requestBody),
-            timeout: 15000
+            signal: controller.signal
         });
         
+        clearTimeout(timeoutId);
         diagnostics.url_accessible = true;
         diagnostics.auth_valid = resp.status !== 401 && resp.status !== 403;
         
@@ -431,7 +499,8 @@ router.get('/tts/models', async (req, res) => {
     try {
         const modelsUrl = cfg.tts_engine_url.replace(/\/$/,'') + '/v1/models';
         const resp = await fetch(modelsUrl, {
-            headers: { 'Authorization': 'Bearer ' + cfg.tts_api_key }
+            headers: { 'Authorization': 'Bearer ' + cfg.tts_api_key },
+            timeout: 10000
         });
         
         if (resp.ok) {
@@ -471,7 +540,8 @@ router.post('/speech/transcribe', async (req, res) => {
                 'Authorization': 'Bearer ' + cfg.tts_api_key,
                 'Content-Type': req.headers['content-type']
             },
-            body: req.body
+            body: req.body,
+            timeout: 15000
         });
         
         if (resp.ok) {
