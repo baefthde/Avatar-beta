@@ -1,17 +1,16 @@
 <!doctype html>
 <html lang="de">
-    <!-- Version 1.0 -->
+    <!-- Version 1.0 - Korrigierte TTS-Integration -->
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <title>Avatar Chat UI</title>
-    <meta name="description" content="Avatar Chat UI mit Spracheingabe und erweiterten Funktionen">
+    <title>Avatar Chat UI v1.0</title>
+    <meta name="description" content="Avatar Chat UI mit Spracheingabe und erweiterten Funktionen - Korrigierte TTS-Version">
         <!-- Preload wichtiger Assets -->
     <link rel="preload" href="js/avatar2d.js" as="script">
     <link rel="preload" href="js/avatar3d.js" as="script">
     <link rel="stylesheet" href="css/style.css" />
     <style>
-
         .status-message {
             animation: fadeIn 0.3s ease-in;
         }
@@ -107,41 +106,137 @@
             border-radius: 4px;
             font-size: 0.8em;
         }
+
+        .tts-status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            display: none;
+        }
+
+        .tts-status.active {
+            display: block;
+            background: rgba(34, 197, 94, 0.8);
+        }
+
+        .tts-status.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.8);
+        }
+
+        .connection-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .connection-indicator.connected {
+            background: #10b981;
+            box-shadow: 0 0 6px #10b981;
+        }
+
+        .connection-indicator.disconnected {
+            background: #ef4444;
+            box-shadow: 0 0 6px #ef4444;
+        }
+
+        .enhanced-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .enhanced-input-row input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        .enhanced-input-row input:focus {
+            outline: 2px solid #3b82f6;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Avatar Chat UI</h1>
+        <h1>Avatar Chat UI v1.0</h1>
         <div style="font-size: 0.9em; opacity: 0.7;" aria-label="Beschreibung">
-            Mit Spracheingabe, verbesserter TTS und erweiterten Avatar-Funktionen
+            Mit Spracheingabe, korrigierter TTS und erweiterten Avatar-Funktionen
         </div>
     </header>
     
     <div style="padding:8px 12px;background:#061021;">
-        <button id="open-system-btn">🔧 Systemeinstellungen</button>
-        <button id="open-avatar-btn">👤 Avatar Einstellungen</button>
-        <button id="clear-conversation-btn">🗑️ Unterhaltung löschen</button>
-        <button id="export-conversation-btn">📁 Exportieren</button>
+        <button id="open-system-btn" class="btn-secondary">🔧 Systemeinstellungen</button>
+        <button id="open-avatar-btn" class="btn-secondary">👤 Avatar Einstellungen</button>
+        <button id="clear-conversation-btn" class="btn-secondary">🗑️ Unterhaltung löschen</button>
+        <button id="export-conversation-btn" class="btn-secondary">📁 Exportieren</button>
     </div>
     
     <main id="main">
         <section id="left">
             <div id="avatar-container" class="avatar-box">
                 <div class="avatar-quality-indicator" id="avatar-quality">3D High</div>
+                <div class="tts-status" id="tts-status">TTS Bereit</div>
             </div>
         </section>
         
         <section id="right">
             <div class="conversation-controls">
                 <span id="conversation-status">Unterhaltung bereit</span>
-                <span id="connection-status" style="margin-left: auto; font-size: 0.8em;">🟢 Verbunden</span>
+                <span id="connection-status" style="margin-left: auto; font-size: 0.8em;">
+                    <span class="connection-indicator connected"></span>Verbunden
+                </span>
             </div>
             
             <div id="messages" class="messages"></div>
             
-            <div class="input-row">
+            <div class="enhanced-input-row">
                 <input id="chat-input" type="text" placeholder="Nachricht eingeben oder Mikrofon nutzen..." />
-                <button id="send-btn">📨 Senden</button>
+                <button id="send-btn" class="btn-primary">📨 Senden</button>
             </div>
         </section>
     </main>
@@ -161,6 +256,7 @@
         <label>URL: <input type="text" id="openwebui_url" placeholder="https://your-openwebui.com" style="width:100%"/></label><br/>
         <label>API Key: <input type="password" id="openwebui_api_key" style="width:100%"/></label><br/>
         <label>Standard Modell: <input type="text" id="default_model" placeholder="gpt-4o-mini" style="width:100%"/></label><br/>
+        <label>Timeout (ms): <input type="number" id="openwebui_timeout" placeholder="20000" style="width:100%" min="5000" max="60000"/></label><br/>
         
         <h3>🎤 Sprach-Einstellungen</h3>
         <label><input type="checkbox" id="use_speech_input" /> Spracheingabe aktivieren</label><br/>
@@ -176,12 +272,16 @@
         </label><br/>
         
         <hr/>
-        <h3>🔊 Text-zu-Sprache (TTS)</h3>
+        <h3>🔊 Text-zu-Sprache (TTS) - Korrigierte Version</h3>
+        <div style="background: rgba(34, 197, 94, 0.1); padding: 8px; border-radius: 4px; margin-bottom: 10px;">
+            <small>✅ TTS nutzt jetzt den Backend-Endpunkt für bessere Stabilität</small>
+        </div>
         <label>TTS-Engine URL: <input type="text" id="tts_engine_url" placeholder="https://api.openai.com" style="width:100%"/></label><br/>
         <label>TTS API Token: <input type="password" id="tts_api_key" style="width:100%"/></label><br/>
         <label>TTS Stimme: <input type="text" id="tts_voice" placeholder="alloy, echo, fable, onyx, nova, shimmer" style="width:100%"/></label><br/>
         <label>TTS Modell: <input type="text" id="tts_model" placeholder="tts-1" style="width:100%"/></label><br/>
         <label>Geschwindigkeit: <input type="range" id="tts_speed" min="0.25" max="4.0" step="0.25" value="1.0"/> <span id="tts_speed_value">1.0x</span></label><br/>
+        <label>TTS Timeout (ms): <input type="number" id="tts_timeout" placeholder="15000" style="width:100%" min="5000" max="30000"/></label><br/>
         
         <div class="diagnostics-grid" id="tts-diagnostics" style="display:none;">
             <div class="diagnostic-item" id="tts-diag-url">URL: <span>-</span></div>
@@ -201,12 +301,12 @@
         </label><br/>
         
         <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
-            <button id="save-system-btn">💾 Speichern</button>
-            <button id="test-openwebui-btn">🧪 Test OpenWebUI</button>
-            <button id="test-tts-btn">🔊 Test TTS</button>
-            <button id="discover-tts-models-btn">🔍 TTS Modelle</button>
-            <button id="view-system-log">📋 System Log</button>
-            <button id="view-all-log">📊 All Log</button>
+            <button id="save-system-btn" class="btn-primary">💾 Speichern</button>
+            <button id="test-openwebui-btn" class="btn-secondary">🧪 Test OpenWebUI</button>
+            <button id="test-tts-btn" class="btn-secondary">🔊 Test TTS</button>
+            <button id="discover-tts-models-btn" class="btn-secondary">🔍 TTS Modelle</button>
+            <button id="view-system-log" class="btn-secondary">📋 System Log</button>
+            <button id="view-all-log" class="btn-secondary">📊 All Log</button>
         </div>
     </aside>
 
@@ -257,9 +357,9 @@
         </label><br/>
         
         <div style="margin-top: 16px;">
-            <button id="save-avatar-btn">💾 Speichern</button>
-            <button id="preview-emotions-btn">😊 Emotionen testen</button>
-            <button id="reset-avatar-btn">🔄 Zurücksetzen</button>
+            <button id="save-avatar-btn" class="btn-primary">💾 Speichern</button>
+            <button id="preview-emotions-btn" class="btn-secondary">😊 Emotionen testen</button>
+            <button id="reset-avatar-btn" class="btn-secondary">🔄 Zurücksetzen</button>
         </div>
     </aside>
 
@@ -267,12 +367,12 @@
     <script>
         // Global configuration and error handling
         window.avatarChatUI = {
-            version: '1.0 Beta',
+            version: '1.0 - Korrigierte TTS-Version',
             debug: false,
             errors: []
         };
 
-        // error handler
+        // Enhanced error handler
         window.onerror = function(msg, url, lineNo, columnNo, error) {
             const errorInfo = {
                 message: msg,
@@ -299,6 +399,35 @@
             
             return false;
         };
+
+        // TTS Status indicator management
+        window.updateTTSStatus = function(status, message) {
+            const ttsStatus = document.getElementById('tts-status');
+            if (ttsStatus) {
+                ttsStatus.textContent = message || status;
+                ttsStatus.className = `tts-status ${status}`;
+                
+                if (status === 'active' || status === 'error') {
+                    setTimeout(() => {
+                        ttsStatus.className = 'tts-status';
+                    }, 3000);
+                }
+            }
+        };
+
+        // Connection status management
+        window.updateConnectionStatus = function(connected) {
+            const indicator = document.querySelector('.connection-indicator');
+            const statusText = document.getElementById('connection-status');
+            
+            if (indicator) {
+                indicator.className = `connection-indicator ${connected ? 'connected' : 'disconnected'}`;
+            }
+            
+            if (statusText) {
+                statusText.innerHTML = `<span class="connection-indicator ${connected ? 'connected' : 'disconnected'}"></span>${connected ? 'Verbunden' : 'Getrennt'}`;
+            }
+        };
     </script>
 
     <!-- Load Three.js and extensions -->
@@ -310,7 +439,6 @@
     <script src="js/avatar2d.js"></script>
     <script src="js/avatar3d.js"></script>
     <script src="js/main.js"></script>
-
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -363,11 +491,13 @@
                         'openwebui_url': cfg.openwebui_url || '',
                         'openwebui_api_key': cfg.openwebui_api_key || '',
                         'default_model': cfg.default_model || 'gpt-4o-mini',
+                        'openwebui_timeout': cfg.openwebui_timeout || 20000,
                         'tts_engine_url': cfg.tts_engine_url || '',
                         'tts_api_key': cfg.tts_api_key || '',
                         'tts_voice': cfg.tts_voice || 'alloy',
                         'tts_model': cfg.tts_model || 'tts-1',
                         'tts_speed': cfg.tts_speed || 1.0,
+                        'tts_timeout': cfg.tts_timeout || 15000,
                         'speech_recognition_lang': cfg.speech_recognition_lang || 'de-DE'
                     };
 
@@ -390,9 +520,13 @@
                     const logModeSelect = document.getElementById('log_mode');
                     if (logModeSelect) logModeSelect.value = logMode;
 
+                    // Update connection status
+                    window.updateConnectionStatus(true);
+
                 } catch (e) {
                     console.warn('Could not load system config:', e);
                     showNotification('❌ Systemkonfiguration konnte nicht geladen werden', 'error');
+                    window.updateConnectionStatus(false);
                 }
             }
 
@@ -491,7 +625,7 @@
                 }
             });
 
-            // Save system settings
+            // Save system settings with enhanced error handling
             document.getElementById('save-system-btn')?.addEventListener('click', async () => {
                 const btn = document.getElementById('save-system-btn');
                 const originalText = btn.textContent;
@@ -503,6 +637,7 @@
                         openwebui_url: document.getElementById('openwebui_url').value,
                         openwebui_api_key: document.getElementById('openwebui_api_key').value,
                         default_model: document.getElementById('default_model').value,
+                        openwebui_timeout: parseInt(document.getElementById('openwebui_timeout').value) || 20000,
                         use_speech_input: document.getElementById('use_speech_input').checked,
                         use_speech_output: document.getElementById('use_speech_output').checked,
                         tts_engine_url: document.getElementById('tts_engine_url').value,
@@ -510,6 +645,7 @@
                         tts_voice: document.getElementById('tts_voice').value,
                         tts_model: document.getElementById('tts_model').value,
                         tts_speed: parseFloat(document.getElementById('tts_speed').value),
+                        tts_timeout: parseInt(document.getElementById('tts_timeout').value) || 15000,
                         speech_recognition_lang: document.getElementById('speech_recognition_lang').value
                     };
 
@@ -525,6 +661,11 @@
                         localStorage.setItem('logMode', logMode);
                         
                         showNotification('✅ Systemeinstellungen gespeichert', 'success');
+                        
+                        // Reload server config in main.js
+                        if (typeof window.reloadServerConfig === 'function') {
+                            await window.reloadServerConfig();
+                        }
                         
                         // Reload config to ensure keys persist
                         setTimeout(loadSystemConfig, 500);
@@ -557,7 +698,8 @@
                     if (data.ok) {
                         showNotification('✅ OpenWebUI Test erfolgreich', 'success');
                     } else {
-                        showNotification('❌ OpenWebUI Test fehlgeschlagen: ' + JSON.stringify(data.tests), 'error');
+                        showNotification('❌ OpenWebUI Test fehlgeschlagen', 'error');
+                        console.error('OpenWebUI test failed:', data);
                     }
                 } catch (e) {
                     showNotification('❌ Test Fehler: ' + e.message, 'error');
@@ -567,7 +709,7 @@
                 }
             });
 
-            // Test TTS
+            // Test TTS - Enhanced with better feedback
             document.getElementById('test-tts-btn')?.addEventListener('click', async () => {
                 const btn = document.getElementById('test-tts-btn');
                 const originalText = btn.textContent;
@@ -575,6 +717,8 @@
                 btn.disabled = true;
 
                 try {
+                    window.updateTTSStatus('active', 'TTS wird getestet...');
+
                     const payload = {
                         url: document.getElementById('tts_engine_url').value,
                         key: document.getElementById('tts_api_key').value,
@@ -594,6 +738,7 @@
                     
                     if (data.ok) {
                         showNotification('✅ TTS Test erfolgreich', 'success');
+                        window.updateTTSStatus('active', 'TTS Test erfolgreich');
                         
                         // Play test audio if available
                         if (data.audio_data) {
@@ -610,10 +755,12 @@
                             }
                         }
                     } else {
-                        showNotification('❌ TTS Test fehlgeschlagen: ' + (data.error || JSON.stringify(data.diagnostics)), 'error');
+                        showNotification('❌ TTS Test fehlgeschlagen: ' + (data.error || 'Unbekannter Fehler'), 'error');
+                        window.updateTTSStatus('error', 'TTS Test fehlgeschlagen');
                     }
                 } catch (e) {
                     showNotification('❌ TTS Test Fehler: ' + e.message, 'error');
+                    window.updateTTSStatus('error', 'TTS Test Fehler');
                 } finally {
                     btn.innerHTML = originalText;
                     btn.disabled = false;
@@ -880,7 +1027,7 @@
                 }
             });
 
-            // Keyboard shortcuts
+            // Enhanced keyboard shortcuts
             document.addEventListener('keydown', (e) => {
                 if (e.ctrlKey || e.metaKey) {
                     switch (e.key) {
@@ -896,6 +1043,10 @@
                             e.preventDefault();
                             clearConvBtn.click();
                             break;
+                        case 's':
+                            e.preventDefault();
+                            document.getElementById('save-system-btn')?.click();
+                            break;
                     }
                 }
                 if (e.key === 'Escape') {
@@ -904,7 +1055,13 @@
                 }
             });
 
-            console.log('Avatar Chat UI - Interface initialized');
+            // Initialize on page load
+            setTimeout(() => {
+                loadSystemConfig();
+                window.updateTTSStatus('', 'TTS Bereit');
+            }, 500);
+
+            console.log('Avatar Chat UI - Enhanced Interface with corrected TTS initialized');
         });
     </script>
 </body>
